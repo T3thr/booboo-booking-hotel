@@ -49,10 +49,11 @@ export default function BookingsPage() {
       }
 
       const data = await response.json();
-      setPhoneBookings(data.bookings || []);
+      const bookings = data.bookings || [];
+      setPhoneBookings(bookings);
       
-      if (data.bookings.length === 0) {
-        setSearchError('No bookings found with this phone number');
+      if (bookings.length === 0) {
+        setSearchError('ไม่พบการจองที่ใช้เบอร์โทรนี้');
       }
     } catch (error) {
       console.error('Search error:', error);
