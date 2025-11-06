@@ -1,7 +1,6 @@
--- Update existing bookings to add phone numbers for testing
--- This adds mock phone numbers to existing booking_guests records
+-- Simple update for testing - run this in Neon SQL Editor
 
--- Update primary guests with mock phone numbers (PostgreSQL compatible)
+-- Update primary guests with mock phone numbers
 UPDATE booking_guests
 SET phone = '0918384976'
 WHERE booking_guest_id IN (
