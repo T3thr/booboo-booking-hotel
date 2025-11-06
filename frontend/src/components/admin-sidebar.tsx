@@ -40,7 +40,7 @@ export function AdminSidebar() {
     if (userRole === 'MANAGER') {
       items.push(
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'manager' },
-        { href: '/admin/pricing/tiers', label: 'จัดการราคา', icon: DollarSign, section: 'manager' },
+        { href: '/admin/pricing', label: 'จัดการราคา', icon: DollarSign, section: 'manager' },
         { href: '/admin/inventory', label: 'สต็อกห้องพัก', icon: Package, section: 'manager' },
         { href: '/admin/reports', label: 'รายงาน', icon: BarChart3, section: 'manager' },
         { href: '/admin/settings', label: 'ตั้งค่า', icon: Settings, section: 'manager' },

@@ -50,7 +50,7 @@ export default function TestApiPage() {
         <div className="p-6 border rounded-lg bg-accent/50">
           <h2 className="text-2xl font-semibold mb-4">API Configuration</h2>
           <div className="space-y-2">
-            <p><strong>API Base URL:</strong> {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}</p>
+            <p><strong>API Base URL:</strong> {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}</p>
             <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
             <p className="text-sm text-muted-foreground mt-4">
               This page tests the API client and React Query setup. If you see data above, 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { getRoleHomePage } from '@/utils/role-redirect';
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,20 +45,32 @@ export default function RegisterPage() {
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('รหัสผ่านไม่ตรงกัน');
+      const errorMsg = 'รหัสผ่านไม่ตรงกัน';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+    if (formData.password.length < 8) {
+      const errorMsg = 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+      setError(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
+    if (!formData.phone || formData.phone.length < 10) {
+      const errorMsg = 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง (อย่างน้อย 10 หลัก)';
+      setError(errorMsg);
+      toast.error(errorMsg);
       return;
     }
 
     setIsLoading(true);
+    toast.loading('กำลังลงทะเบียน...', { id: 'register' });
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
-      const res = await fetch(`${backendUrl}/auth/register`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(`${backendUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,15 +84,24 @@ export default function RegisterPage() {
         }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'ลงทะเบียนไม่สำเร็จ' }));
-        throw new Error(errorData.message || 'ลงทะเบียนไม่สำเร็จ');
+        throw new Error(data.message || data.error || 'ลงทะเบียนไม่สำเร็จ');
       }
 
-      // Registration successful, redirect to sign in
+      // Registration successful
+      console.log('[Register] Success:', data);
+      toast.success('ลงทะเบียนสำเร็จ! กำลังนำคุณไปยังหน้าเข้าสู่ระบบ...', { id: 'register', duration: 3000 });
+      
+      // Wait a bit for user to see success message
+      await new Promise(resolve => setTimeout(resolve, 1500));
       router.push('/auth/signin?registered=true');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการลงทะเบียน');
+      const errorMsg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการลงทะเบียน';
+      console.error('[Register] Error:', errorMsg);
+      setError(errorMsg);
+      toast.error(errorMsg, { id: 'register' });
     } finally {
       setIsLoading(false);
     }
@@ -137,6 +159,7 @@ export default function RegisterPage() {
                   required
                   value={formData.firstName}
                   onChange={handleChange}
+                  placeholder="สมชาย"
                   disabled={isLoading}
                 />
               </div>
@@ -152,6 +175,7 @@ export default function RegisterPage() {
                   required
                   value={formData.lastName}
                   onChange={handleChange}
+                  placeholder="ใจดี"
                   disabled={isLoading}
                 />
               </div>
@@ -169,7 +193,7 @@ export default function RegisterPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="your@email.com"
+                placeholder="example@email.com"
                 disabled={isLoading}
               />
             </div>
@@ -184,7 +208,7 @@ export default function RegisterPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="0812345678"
+                placeholder="0812345678 (10 หลัก)"
                 disabled={isLoading}
               />
             </div>
@@ -201,7 +225,7 @@ export default function RegisterPage() {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="••••••••"
+                placeholder="อย่างน้อย 8 ตัวอักษร"
                 disabled={isLoading}
               />
             </div>
@@ -218,7 +242,7 @@ export default function RegisterPage() {
                 required
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                placeholder="••••••••"
+                placeholder="กรอกรหัสผ่านอีกครั้ง"
                 disabled={isLoading}
               />
             </div>

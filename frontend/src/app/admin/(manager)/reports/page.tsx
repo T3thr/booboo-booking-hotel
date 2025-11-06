@@ -171,7 +171,7 @@ export default function ReportsPage() {
       };
       
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/reports/export?${new URLSearchParams(params)}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/reports/export?${new URLSearchParams(params)}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

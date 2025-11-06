@@ -56,8 +56,19 @@ export function useUpdateRateTier() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name: string } }) =>
-      pricingApi.updateTier(id, data),
+    mutationFn: ({ rate_tier_id, name }: { rate_tier_id: number; name: string }) =>
+      pricingApi.updateTier(rate_tier_id, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rateTiers'] });
+    },
+  });
+}
+
+export function useDeleteRateTier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (rate_tier_id: number) => pricingApi.deleteTier(rate_tier_id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rateTiers'] });
     },

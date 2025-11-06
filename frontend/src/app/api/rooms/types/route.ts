@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 /**
  * GET /api/rooms/types
@@ -8,7 +8,7 @@ const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL |
  */
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = `${BACKEND_URL}/rooms/types`;
+    const backendUrl = `${BACKEND_URL}/api/rooms/types`;
     
     console.log('[Room Types Proxy] Calling backend:', backendUrl);
 

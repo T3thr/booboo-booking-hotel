@@ -6,6 +6,7 @@ import { SessionProvider } from 'next-auth/react';
 import { useState } from 'react';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { Toaster } from 'sonner';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -41,6 +42,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
         <QueryClientProvider client={queryClient}>
           {children}
+          <Toaster 
+            position="top-center" 
+            richColors 
+            closeButton
+            duration={4000}
+          />
           <ThemeToggle />
           {process.env.NODE_ENV === 'development' && (
             <ReactQueryDevtools initialIsOpen={false} />

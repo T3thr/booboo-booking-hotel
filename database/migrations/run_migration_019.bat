@@ -1,10 +1,10 @@
 @echo off
 REM ============================================================================
-REM Run Migration 015: Create Payment Proof Table
+REM Run Migration 019: Seed Complete Admin Demo Data
 REM ============================================================================
 
 echo ============================================
-echo Running Migration 015
+echo Running Migration 019
 echo ============================================
 echo.
 
@@ -21,21 +21,30 @@ echo Host: %PGHOST%
 echo.
 
 REM Run the migration
-psql "postgresql://%PGUSER%:%PGPASSWORD%@%PGHOST%/%PGDATABASE%?sslmode=require" -f 015_create_payment_proof_table.sql
+psql "postgresql://%PGUSER%:%PGPASSWORD%@%PGHOST%/%PGDATABASE%?sslmode=require" -f 019_seed_admin_demo_data_complete.sql
 
 if %ERRORLEVEL% EQU 0 (
     echo.
     echo ============================================
-    echo Migration 015 completed successfully!
+    echo Migration 019 completed successfully!
     echo ============================================
     echo.
-    echo Payment Proof table has been created.
-    echo You can now run migration 019.
+    echo Admin Demo Data has been seeded:
+    echo - 3 Pending Bookings
+    echo - 5 Payment Proofs
+    echo - Updated Inventory
+    echo - Housekeeping Tasks
+    echo.
+    echo You can now test Admin Pages:
+    echo 1. Dashboard: http://localhost:3000/admin/dashboard
+    echo 2. Bookings: http://localhost:3000/admin/bookings
+    echo 3. Inventory: http://localhost:3000/admin/inventory
+    echo 4. Housekeeping: http://localhost:3000/admin/housekeeping
     echo.
 ) else (
     echo.
     echo ============================================
-    echo Migration 015 failed!
+    echo Migration 019 failed!
     echo ============================================
     echo Please check the error messages above.
     echo.

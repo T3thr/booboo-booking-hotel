@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Eye, EyeOff, Shield, Lock, Mail } from 'lucide-react';
 import { getRoleHomePage } from '@/utils/role-redirect';
+import { toast } from 'sonner';
 
 function AdminSignInForm() {
   const router = useRouter();
@@ -36,6 +37,7 @@ function AdminSignInForm() {
 
     try {
       console.log('[Admin Login] Attempting login for:', email);
+      toast.loading('กำลังเข้าสู่ระบบ...', { id: 'admin-signin' });
       
       const result = await signIn('credentials', {
         email,
@@ -47,7 +49,9 @@ function AdminSignInForm() {
 
       if (result?.error) {
         console.error('[Admin Login] Error:', result.error);
-        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+        const errorMsg = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+        setError(errorMsg);
+        toast.error(errorMsg, { id: 'admin-signin' });
       } else if (result?.ok) {
         // Wait for session to update
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -65,26 +69,35 @@ function AdminSignInForm() {
           if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
             // Redirect to /admin which will then redirect to role-specific page
             console.log('[Admin Login] Valid staff role:', role, 'redirecting to /admin');
+            toast.success(`ยินดีต้อนรับ ${sessionData.user.name || 'Admin'}!`, { id: 'admin-signin' });
             router.push('/admin');
             router.refresh();
           } else if (role === 'GUEST') {
             // ❌ Guest trying to login via admin page
             console.error('[Admin Login] Guest detected! Rejecting login');
-            setError('บัญชีนี้เป็นบัญชีแขก กรุณาใช้หน้า Guest Login');
+            const errorMsg = 'บัญชีนี้เป็นบัญชีแขก กรุณาใช้หน้า Guest Login';
+            setError(errorMsg);
+            toast.error(errorMsg, { id: 'admin-signin' });
             // Sign out the guest user
             await fetch('/api/auth/signout', { method: 'POST' });
           } else {
             console.error('[Admin Login] Unknown role:', role);
-            setError('ไม่สามารถระบุประเภทบัญชีได้');
+            const errorMsg = 'ไม่สามารถระบุประเภทบัญชีได้';
+            setError(errorMsg);
+            toast.error(errorMsg, { id: 'admin-signin' });
           }
         } else {
           console.error('[Admin Login] No role in session!');
-          setError('ไม่พบข้อมูล role กรุณาลองใหม่');
+          const errorMsg = 'ไม่พบข้อมูล role กรุณาลองใหม่';
+          setError(errorMsg);
+          toast.error(errorMsg, { id: 'admin-signin' });
         }
       }
     } catch (err) {
       console.error('[Admin Login] Exception:', err);
-      setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+      const errorMsg = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+      setError(errorMsg);
+      toast.error(errorMsg, { id: 'admin-signin' });
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +169,7 @@ function AdminSignInForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@hotel.com"
+                placeholder="staff@hotel.com"
                 disabled={isLoading}
                 className="pl-10 h-11 bg-background border-input focus:border-primary focus:ring-primary"
               />
@@ -180,7 +193,7 @@ function AdminSignInForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="รหัสผ่านของคุณ"
                 disabled={isLoading}
                 className="pl-10 pr-10 h-11 bg-background border-input focus:border-primary focus:ring-primary"
               />

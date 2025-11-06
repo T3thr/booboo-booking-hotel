@@ -1,11 +1,11 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import { getSession } from 'next-auth/react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -301,6 +301,7 @@ export const pricingApi = {
   getTiers: () => api.get('/pricing/tiers'),
   createTier: (data: any) => api.post('/pricing/tiers', data),
   updateTier: (id: number, data: any) => api.put(`/pricing/tiers/${id}`, data),
+  deleteTier: (id: number) => api.delete(`/pricing/tiers/${id}`),
   getCalendar: (params?: any) => api.get('/pricing/calendar', { params }),
   updateCalendar: (data: any) => api.put('/pricing/calendar', data),
   getRates: (params?: any) => {

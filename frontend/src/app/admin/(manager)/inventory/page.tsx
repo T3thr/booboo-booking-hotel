@@ -3,8 +3,20 @@
 import { useState, useMemo } from "react";
 import { useInventory, useUpdateInventory } from "@/hooks/use-inventory";
 import { useQuery } from "@tanstack/react-query";
-import { roomApi } from "@/lib/api";
-import type { RoomType, RoomInventory } from "@/types";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import type { RoomInventory } from "@/types";
+
+interface RoomType {
+  room_type_id: number;
+  name: string;
+  description: string;
+  base_price: number;
+  max_occupancy: number;
+  default_allotment: number;
+}
 
 export default function InventoryManagementPage() {
   const [selectedRoomType, setSelectedRoomType] = useState<number | null>(null);
@@ -21,20 +33,56 @@ export default function InventoryManagementPage() {
     { date: string; message: string }[]
   >([]);
 
-  // Fetch room types
-  const { data: roomTypesResponse } = useQuery({
+  // Fetch room types from database
+  const { data: roomTypesResponse, isLoading: roomTypesLoading, error: roomTypesError } = useQuery({
     queryKey: ["roomTypes"],
-    queryFn: () => roomApi.getTypes(),
+    queryFn: async () => {
+      console.log('[Inventory] Fetching room types...');
+      const response = await fetch("/api/rooms/types");
+      console.log('[Inventory] Room types response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Inventory] Room types error:', errorText);
+        throw new Error(`Failed to fetch room types: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('[Inventory] Room types data:', data);
+      return data;
+    },
   });
 
   // Ensure roomTypes is always an array
   const roomTypes = useMemo(() => {
-    if (!roomTypesResponse) return [];
-    if (Array.isArray(roomTypesResponse)) return roomTypesResponse;
+    console.log('[Inventory] Processing room types response:', roomTypesResponse);
+    
+    if (!roomTypesResponse) {
+      console.log('[Inventory] No response');
+      return [];
+    }
+    
+    // Handle direct array response
+    if (Array.isArray(roomTypesResponse)) {
+      console.log('[Inventory] Direct array:', roomTypesResponse.length, 'items');
+      return roomTypesResponse;
+    }
+    
+    // Handle wrapped response
     if (roomTypesResponse.data && Array.isArray(roomTypesResponse.data)) {
+      console.log('[Inventory] Wrapped array:', roomTypesResponse.data.length, 'items');
       return roomTypesResponse.data;
     }
-    console.error('[Inventory] Invalid roomTypes format:', roomTypesResponse);
+    
+    // Handle success wrapper
+    if (roomTypesResponse.success && roomTypesResponse.data) {
+      if (Array.isArray(roomTypesResponse.data)) {
+        console.log('[Inventory] Success wrapped array:', roomTypesResponse.data.length, 'items');
+        return roomTypesResponse.data;
+      }
+    }
+    
+    console.error('[Inventory] Unknown response format:', roomTypesResponse);
     return [];
   }, [roomTypesResponse]);
 
@@ -361,12 +409,35 @@ export default function InventoryManagementPage() {
         </div>
       )}
 
+      {/* Error State */}
+      {roomTypesError && (
+        <Card className="p-6 bg-destructive/10 border-destructive/30">
+          <h3 className="font-semibold text-destructive mb-2">เกิดข้อผิดพลาดในการโหลดข้อมูล</h3>
+          <p className="text-sm text-muted-foreground">{(roomTypesError as Error).message}</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            กรุณาตรวจสอบ:
+            <br />• Backend กำลังทำงานที่ http://localhost:8080
+            <br />• Database มีข้อมูล room_types
+            <br />• เปิด Console เพื่อดู error details
+          </p>
+        </Card>
+      )}
+
       {/* Loading State */}
-      {isLoading && (
+      {(isLoading || roomTypesLoading) && (
         <div className="text-center py-12 bg-card rounded-lg">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">กำลังโหลดข้อมูล...</p>
         </div>
+      )}
+
+      {/* Debug Info */}
+      {!isLoading && !roomTypesLoading && (
+        <Card className="p-4 bg-muted/30 text-xs font-mono">
+          <p>Room Types Count: {roomTypes.length}</p>
+          <p>Selected Room Type: {selectedRoomType || 'None'}</p>
+          <p>Inventory Data Count: {inventoryData.length}</p>
+        </Card>
       )}
 
       {/* Empty State - No Room Type Selected */}

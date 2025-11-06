@@ -4,27 +4,29 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// Import tab components
-import RoomStatusTab from "@/app/admin/(staff)/reception/components/RoomStatusTab";
-import BookingManagementTab from "@/app/admin/(staff)/reception/components/BookingManagementTab";
+// Import components from existing pages
+import TiersTab from "./components/TiersTab";
+import CalendarTab from "./components/CalendarTab";
+import MatrixTab from "./components/MatrixTab";
 
-type TabType = "rooms" | "bookings";
+type TabType = "tiers" | "calendar" | "matrix";
 
-export default function ReceptionPage() {
-  const [activeTab, setActiveTab] = useState<TabType>("rooms");
+export default function PricingManagementPage() {
+  const [activeTab, setActiveTab] = useState<TabType>("tiers");
 
   const tabs = [
-    { id: "rooms" as TabType, label: "สถานะห้องพัก", icon: "🏨" },
-    { id: "bookings" as TabType, label: "จัดการการจอง", icon: "📋" },
+    { id: "tiers" as TabType, label: "ระดับราคา", icon: "📊" },
+    { id: "calendar" as TabType, label: "ปฏิทินราคา", icon: "📅" },
+    { id: "matrix" as TabType, label: "ตารางราคา", icon: "💰" },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Reception Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground">จัดการราคาห้องพัก</h1>
         <p className="mt-2 text-muted-foreground">
-          จัดการสถานะห้องพักและการจองแบบเรียลไทม์
+          กำหนดระดับราคา ปฏิทินราคา และตารางราคาสำหรับแต่ละประเภทห้อง
         </p>
       </div>
 
@@ -55,8 +57,9 @@ export default function ReceptionPage() {
 
       {/* Tab Content */}
       <div className="mt-6">
-        {activeTab === "rooms" && <RoomStatusTab />}
-        {activeTab === "bookings" && <BookingManagementTab />}
+        {activeTab === "tiers" && <TiersTab />}
+        {activeTab === "calendar" && <CalendarTab />}
+        {activeTab === "matrix" && <MatrixTab />}
       </div>
     </div>
   );
