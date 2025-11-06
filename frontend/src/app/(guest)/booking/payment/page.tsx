@@ -130,7 +130,7 @@ export default function PaymentPage() {
               </svg>
               <span className="font-medium text-accent-foreground">เวลาที่เหลือในการชำระเงิน</span>
             </div>
-            <CountdownTimer expiryTime={holdExpiry} onExpire={() => router.push('/rooms/search')} />
+            <CountdownTimer expiryDate={holdExpiry} onExpire={() => router.push('/rooms/search')} />
           </div>
         </div>
 
