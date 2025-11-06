@@ -1,0 +1,139 @@
+========================================
+โปรเจคฐานข้อมูล 2025 (305311-3)
+Hotel Reservation System
+========================================
+
+📁 ไฟล์ที่ส่ง:
+
+1. SQL Scripts (DDL) - โค้ดสร้างตาราง
+   📂 database/migrations/
+   - 001_create_guests_tables.sql
+   - 002_create_room_management_tables.sql
+   - 003_create_pricing_inventory_tables.sql
+   - 004_create_bookings_tables.sql
+   - 014_create_role_system.sql
+   
+   ✅ สร้างตารางทั้งหมด 20+ ตาราง
+   ✅ มี Primary Key, Foreign Key ครบถ้วน
+   ✅ มี Constraints (CHECK, UNIQUE, NOT NULL)
+   ✅ มี Indexes เพื่อเพิ่มประสิทธิภาพ
+   ✅ ผ่าน Normalization ถึง 3NF
+
+2. SQL Scripts (DML) - โค้ดเพิ่มข้อมูล
+   📂 database/migrations/
+   - 013_seed_demo_data.sql
+   
+   ✅ มีข้อมูลมากกว่า 700 records รวมทุกตาราง
+   ✅ ตารางหลักมีข้อมูล 200+ records:
+      - room_inventory: 270 records
+      - pricing_calendar: 90 records
+      - rooms: 50 records
+      - rate_pricing: 48 records
+      - bookings: 30 records
+      - และอื่นๆ
+
+3. Complex SQL Queries - คำสั่ง SQL ซับซ้อน
+   📂 database/queries/
+   - complex_queries.sql
+   
+   ✅ มี 15 Complex Queries ที่ครอบคลุม:
+      ✓ INNER JOIN, LEFT JOIN, RIGHT JOIN
+      ✓ GROUP BY และ HAVING
+      ✓ Subqueries (Correlated และ Non-correlated)
+      ✓ Aggregate Functions (COUNT, SUM, AVG, MAX, MIN)
+      ✓ Window Functions (LAG, SUM OVER, AVG OVER)
+      ✓ Common Table Expressions (CTE)
+      ✓ Date/Time Functions
+      ✓ String Aggregation
+      ✓ CASE statements
+
+4. Web Application - User Interface
+   🌐 URL: http://localhost:3000 (local)
+   
+   ✅ Frontend: Next.js + TypeScript
+   ✅ Backend: Go (Golang) + PostgreSQL
+   ✅ ฟีเจอร์:
+      - ค้นหาและจองห้องพัก
+      - Check-in / Check-out
+      - จัดการราคาตามฤดูกาล
+      - รายงานต่างๆ
+      - Role-based access control
+
+========================================
+วิธีการรัน:
+========================================
+
+1. สร้าง Database:
+   psql -U postgres
+   CREATE DATABASE hotel_booking;
+   \q
+
+2. รัน DDL Scripts:
+   psql -U postgres -d hotel_booking -f database/migrations/001_create_guests_tables.sql
+   psql -U postgres -d hotel_booking -f database/migrations/002_create_room_management_tables.sql
+   psql -U postgres -d hotel_booking -f database/migrations/003_create_pricing_inventory_tables.sql
+   psql -U postgres -d hotel_booking -f database/migrations/004_create_bookings_tables.sql
+   psql -U postgres -d hotel_booking -f database/migrations/014_create_role_system.sql
+
+3. เพิ่มข้อมูลตัวอย่าง:
+   psql -U postgres -d hotel_booking -f database/migrations/013_seed_demo_data.sql
+
+4. ทดสอบ Complex Queries:
+   psql -U postgres -d hotel_booking -f database/queries/complex_queries.sql
+
+5. รัน Backend:
+   cd backend
+   go run cmd/server/main.go
+
+6. รัน Frontend:
+   cd frontend
+   npm install
+   npm run dev
+
+========================================
+ข้อมูลสำหรับทดสอบ:
+========================================
+
+Guest Account:
+  Email: anan.test@example.com
+  Password: password123
+
+Staff Accounts:
+  Manager: manager@hotel.com / manager123
+  Receptionist: receptionist@hotel.com / receptionist123
+  Housekeeper: housekeeper@hotel.com / housekeeper123
+
+========================================
+สรุปข้อมูลในฐานข้อมูล:
+========================================
+
+ตารางหลัก:
+- guests: 10 records
+- rooms: 50 records
+- bookings: 30 records
+- room_inventory: 270 records
+- pricing_calendar: 90 records
+- rate_pricing: 48 records
+- และอื่นๆ รวมกว่า 700 records
+
+ความสัมพันธ์:
+- guests (1:N) bookings
+- bookings (1:N) booking_details
+- booking_details (N:1) room_types
+- room_types (N:M) amenities
+- และอื่นๆ
+
+Normalization: ผ่าน 3NF ✅
+
+========================================
+เอกสารเพิ่มเติม:
+========================================
+
+📄 DATABASE_PROJECT_SUBMISSION.md - เอกสารสรุปโปรเจคฉบับเต็ม
+📄 database/migrations/SCHEMA_DIAGRAM.md - ER Diagram
+📄 backend/ARCHITECTURE.md - System Architecture
+📄 backend/docs/swagger.yaml - API Documentation
+
+========================================
+ขอบคุณครับ! 🙏
+========================================

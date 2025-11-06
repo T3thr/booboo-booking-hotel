@@ -1,0 +1,319 @@
+{
+  "info": {
+    "name": "Hotel Booking System - Booking Module",
+    "description": "API collection for testing the Booking Module (Task 15)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "booking_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    console.log('User registered successfully');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"email\": \"test@example.com\",\n  \"phone\": \"1234567890\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.accessToken);",
+                  "    console.log('Token saved:', jsonData.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Room Search",
+      "item": [
+        {
+          "name": "Search Available Rooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rooms/search?checkIn=2025-12-01&checkOut=2025-12-03&guests=2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms", "search"],
+              "query": [
+                {
+                  "key": "checkIn",
+                  "value": "2025-12-01"
+                },
+                {
+                  "key": "checkOut",
+                  "value": "2025-12-03"
+                },
+                {
+                  "key": "guests",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Booking Flow",
+      "item": [
+        {
+          "name": "Create Booking Hold",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('Hold created:', jsonData.hold_id);",
+                  "    console.log('Expires at:', jsonData.hold_expiry);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"test-session-{{$timestamp}}\",\n  \"room_type_id\": 1,\n  \"check_in\": \"2025-12-01\",\n  \"check_out\": \"2025-12-03\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings/hold",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "hold"]
+            }
+          }
+        },
+        {
+          "name": "Create Booking",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('booking_id', jsonData.booking_id);",
+                  "    console.log('Booking created:', jsonData.booking_id);",
+                  "    console.log('Total amount:', jsonData.total_amount);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"test-session-{{$timestamp}}\",\n  \"details\": [\n    {\n      \"room_type_id\": 1,\n      \"rate_plan_id\": 1,\n      \"check_in\": \"2025-12-01\",\n      \"check_out\": \"2025-12-03\",\n      \"num_guests\": 2,\n      \"guests\": [\n        {\n          \"first_name\": \"John\",\n          \"last_name\": \"Doe\",\n          \"type\": \"Adult\",\n          \"is_primary\": true\n        },\n        {\n          \"first_name\": \"Jane\",\n          \"last_name\": \"Doe\",\n          \"type\": \"Adult\",\n          \"is_primary\": false\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "Confirm Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{booking_id}},\n  \"payment_method\": \"credit_card\",\n  \"payment_id\": \"pay_test_{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "confirm"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. View Bookings",
+      "item": [
+        {
+          "name": "Get All Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/bookings?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "status",
+                  "value": "Confirmed",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Booking by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Cancel Booking",
+      "item": [
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": {{booking_id}},\n  \"reason\": \"Testing cancellation flow\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings/{{booking_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings", "{{booking_id}}", "cancel"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

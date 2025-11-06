@@ -1,0 +1,24 @@
+# Development Dockerfile for Go Backend
+FROM golang:1.23-alpine
+
+WORKDIR /app
+
+# Install Air for hot reload (v1.52.3 compatible with Go 1.23)
+RUN go install github.com/air-verse/air@v1.52.3
+
+# Install git for go mod download
+RUN apk add --no-cache git
+
+# Copy go mod files
+COPY go.mod go.sum* ./
+
+# Download dependencies (if go.sum exists)
+RUN if [ -f go.sum ]; then go mod download; fi
+
+# Copy source code
+COPY . .
+
+EXPOSE 8080
+
+# Run with Air for hot reload
+CMD ["air", "-c", ".air.toml"]

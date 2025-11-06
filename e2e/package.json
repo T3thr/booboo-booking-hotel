@@ -1,0 +1,30 @@
+{
+  "name": "hotel-booking-e2e-tests",
+  "version": "1.0.0",
+  "description": "End-to-End tests for Hotel Booking System using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:booking": "playwright test tests/01-booking-flow.spec.ts",
+    "test:checkin": "playwright test tests/02-checkin-flow.spec.ts",
+    "test:cancellation": "playwright test tests/03-cancellation-flow.spec.ts",
+    "test:errors": "playwright test tests/04-error-scenarios.spec.ts",
+    "test:report": "playwright show-report",
+    "test:codegen": "playwright codegen http://localhost:3000"
+  },
+  "keywords": [
+    "e2e",
+    "playwright",
+    "testing",
+    "hotel-booking"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

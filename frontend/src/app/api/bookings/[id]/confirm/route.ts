@@ -1,0 +1,77 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+
+const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+/**
+ * POST /api/bookings/[id]/confirm
+ * Confirm a booking
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+    const { id } = await params;
+    const backendUrl = `${BACKEND_URL}/bookings/${id}/confirm`;
+    
+    console.log('[Booking Confirm Proxy] Calling backend:', backendUrl);
+
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (session?.accessToken) {
+      headers['Authorization'] = `Bearer ${session.accessToken}`;
+    }
+
+    // Get request body (if any) or use mock payment data
+    let requestBody;
+    try {
+      requestBody = await request.json();
+    } catch {
+      // If no body provided, use mock payment data
+      requestBody = {};
+    }
+
+    // Ensure required fields are present
+    const confirmRequest = {
+      booking_id: parseInt(id),
+      payment_method: requestBody.payment_method || 'credit_card',
+      payment_id: requestBody.payment_id || `mock_payment_${Date.now()}`,
+    };
+
+    console.log('[Booking Confirm Proxy] Request body:', confirmRequest);
+
+    const response = await fetch(backendUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(confirmRequest),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Booking Confirm Proxy] Backend error:', response.status, errorText);
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Backend error: ${response.status}`,
+        },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('[Booking Confirm Proxy] Error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+}

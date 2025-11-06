@@ -1,0 +1,40 @@
+# Render Blueprint for Hotel Booking System
+# This file enables one-click deployment
+
+services:
+  # Go Backend API
+  - type: web
+    name: hotel-booking-backend
+    env: go
+    buildCommand: cd backend && go build -o main ./cmd/server
+    startCommand: cd backend && ./main
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: GIN_MODE
+        value: release
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Set manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false  # Set after frontend deployment
+
+  # Next.js Frontend
+  - type: web
+    name: hotel-booking-frontend
+    env: static
+    buildCommand: cd frontend && npm ci && npm run build && npm run export
+    staticPublishPath: frontend/out
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://hotel-booking-backend.onrender.com/api
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+
+# Database (External - Neon)
+# Create manually at https://console.neon.tech

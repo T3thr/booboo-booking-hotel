@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-sarabun);
+  --radius-default: 0.5rem;
+  
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f3f4f6;
+  --color-secondary-foreground: #1f2937;
+  --color-muted: #f9fafb;
+  --color-muted-foreground: #6b7280;
+  --color-accent: #dbeafe;
+  --color-accent-foreground: #1e40af;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e5e7eb;
+  --color-input: #e5e7eb;
+  --color-ring: #3b82f6;
+}
+
+.dark {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+  --color-primary: #60a5fa;
+  --color-primary-foreground: #1e3a8a;
+  --color-secondary: #1f2937;
+  --color-secondary-foreground: #f9fafb;
+  --color-muted: #111827;
+  --color-muted-foreground: #9ca3af;
+  --color-accent: #1e3a8a;
+  --color-accent-foreground: #dbeafe;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #fef2f2;
+  --color-border: #374151;
+  --color-input: #374151;
+  --color-ring: #60a5fa;
+}
+
+body {
+  @apply bg-background text-foreground;
+  font-family: var(--font-sarabun), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-muted);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 10px;
+  border: 2px solid var(--color-muted);
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+  opacity: 0.8;
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) var(--color-muted);
+}

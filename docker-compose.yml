@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Disabled - Using Neon PostgreSQL)
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: hotel-booking-db
+  #   environment:
+  #     POSTGRES_DB: hotel_booking
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres123
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #     - ./database/migrations:/docker-entrypoint-initdb.d
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - hotel-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: hotel-booking-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # Go Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: hotel-booking-backend
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/tmp
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: hotel-booking-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: your-nextauth-secret-change-in-production
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - hotel-network
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  hotel-network:
+    driver: bridge

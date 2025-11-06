@@ -1,0 +1,22 @@
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/node_modules/
+
+# Test artifacts
+*.mp4
+*.webm
+*.png
+screenshots/
+videos/
+traces/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.test

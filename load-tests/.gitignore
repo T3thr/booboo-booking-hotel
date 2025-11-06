@@ -1,0 +1,23 @@
+# k6 output files
+*.json
+summary.json
+concurrent-booking-summary.json
+connection-pool-summary.json
+
+# Node modules (if any)
+node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Test results
+results/
+reports/
