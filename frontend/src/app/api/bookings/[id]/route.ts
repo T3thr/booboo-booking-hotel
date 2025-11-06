@@ -14,7 +14,7 @@ export async function GET(
   try {
     const session = await auth();
     const { id } = await params;
-    const backendUrl = `${BACKEND_URL}/bookings/${id}`;
+    const backendUrl = `${BACKEND_URL}/api/bookings/${id}`;
     
     console.log('[Booking Detail Proxy] Calling backend:', backendUrl);
 

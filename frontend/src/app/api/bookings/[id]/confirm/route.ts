@@ -5,7 +5,7 @@ const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL |
 
 /**
  * POST /api/bookings/[id]/confirm
- * Confirm a booking
+ * Confirm a booking (works with or without authentication)
  */
 export async function POST(
   request: NextRequest,
@@ -14,16 +14,21 @@ export async function POST(
   try {
     const session = await auth();
     const { id } = await params;
-    const backendUrl = `${BACKEND_URL}/bookings/${id}/confirm`;
+    const backendUrl = `${BACKEND_URL}/api/bookings/${id}/confirm`;
     
     console.log('[Booking Confirm Proxy] Calling backend:', backendUrl);
+    console.log('[Booking Confirm Proxy] Session:', session ? 'Authenticated' : 'Guest');
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
+    // Only add Authorization header if we have a valid session with accessToken
     if (session?.accessToken) {
       headers['Authorization'] = `Bearer ${session.accessToken}`;
+      console.log('[Booking Confirm Proxy] Adding auth token');
+    } else {
+      console.log('[Booking Confirm Proxy] No auth token - guest confirmation');
     }
 
     // Get request body (if any) or use mock payment data

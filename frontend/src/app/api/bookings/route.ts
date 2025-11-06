@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     const searchParams = request.nextUrl.searchParams;
 
-    const backendUrl = `${BACKEND_URL}/bookings?${searchParams.toString()}`;
+    const backendUrl = `${BACKEND_URL}/api/bookings?${searchParams.toString()}`;
     
     console.log('[Bookings Proxy] Calling backend:', backendUrl);
 
@@ -57,23 +57,28 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/bookings
- * Create a new booking
+ * Create a new booking (works with or without authentication)
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     const body = await request.json();
 
-    const backendUrl = `${BACKEND_URL}/bookings`;
+    const backendUrl = `${BACKEND_URL}/api/bookings`;
     
     console.log('[Bookings Proxy] Calling backend:', backendUrl);
+    console.log('[Bookings Proxy] Session:', session ? 'Authenticated' : 'Guest');
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
+    // Only add Authorization header if we have a valid session with accessToken
     if (session?.accessToken) {
       headers['Authorization'] = `Bearer ${session.accessToken}`;
+      console.log('[Bookings Proxy] Adding auth token');
+    } else {
+      console.log('[Bookings Proxy] No auth token - guest booking');
     }
 
     const response = await fetch(backendUrl, {

@@ -5,23 +5,28 @@ const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL |
 
 /**
  * POST /api/bookings/hold
- * Create a booking hold
+ * Create a booking hold (works with or without authentication)
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     const body = await request.json();
 
-    const backendUrl = `${BACKEND_URL}/bookings/hold`;
+    const backendUrl = `${BACKEND_URL}/api/bookings/hold`;
     
     console.log('[Booking Hold Proxy] Calling backend:', backendUrl);
+    console.log('[Booking Hold Proxy] Session:', session ? 'Authenticated' : 'Guest');
 
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
+    // Only add Authorization header if we have a valid session with accessToken
     if (session?.accessToken) {
       headers['Authorization'] = `Bearer ${session.accessToken}`;
+      console.log('[Booking Hold Proxy] Adding auth token');
+    } else {
+      console.log('[Booking Hold Proxy] No auth token - guest hold');
     }
 
     const response = await fetch(backendUrl, {

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const fileUrl = `/uploads/payment-proofs/${filename}`;
 
     // Save payment proof info to backend
-    const backendResponse = await fetch(`${BACKEND_URL}/bookings/${bookingId}/payment-proof`, {
+    const backendResponse = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}/payment-proof`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const backendUrl = `${BACKEND_URL}/bookings/${bookingId}/payment-proof`;
+    const backendUrl = `${BACKEND_URL}/api/bookings/${bookingId}/payment-proof`;
     
     const response = await fetch(backendUrl, {
       method: 'GET',

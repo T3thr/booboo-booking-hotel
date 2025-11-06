@@ -65,23 +65,19 @@ export function Navbar() {
                   </Link>
                 )}
 
-                {/* Guest Navigation */}
-                {userRole === 'GUEST' && (
-                  <>
-                    <Link href="/rooms/search">
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <Search className="w-4 h-4" />
-                        <span className="hidden lg:inline">ค้นหาห้องพัก</span>
-                      </Button>
-                    </Link>
-                    <Link href="/bookings">
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span className="hidden lg:inline">การจองของฉัน</span>
-                      </Button>
-                    </Link>
-                  </>
-                )}
+                {/* Guest Navigation - Show for all users including staff */}
+                <Link href="/rooms/search">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Search className="w-4 h-4" />
+                    <span className="hidden lg:inline">ค้นหาห้องพัก</span>
+                  </Button>
+                </Link>
+                <Link href="/bookings">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span className="hidden lg:inline">ประวัติการจอง</span>
+                  </Button>
+                </Link>
 
                 {/* User Menu */}
                 <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
@@ -191,23 +187,19 @@ export function Navbar() {
                   </Link>
                 )}
 
-                {/* Guest Navigation */}
-                {userRole === 'GUEST' && (
-                  <>
-                    <Link href="/rooms/search" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start gap-2">
-                        <Search className="w-4 h-4" />
-                        ค้นหาห้องพัก
-                      </Button>
-                    </Link>
-                    <Link href="/bookings" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full justify-start gap-2">
-                        <Calendar className="w-4 h-4" />
-                        การจองของฉัน
-                      </Button>
-                    </Link>
-                  </>
-                )}
+                {/* Guest Navigation - Show for all users including staff */}
+                <Link href="/rooms/search" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Search className="w-4 h-4" />
+                    ค้นหาห้องพัก
+                  </Button>
+                </Link>
+                <Link href="/bookings" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Calendar className="w-4 h-4" />
+                    ประวัติการจอง
+                  </Button>
+                </Link>
 
                 {/* Logout */}
                 <Button

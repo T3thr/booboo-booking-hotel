@@ -25,7 +25,7 @@ export async function POST(
     }
 
     const { id } = await params;
-    const backendUrl = `${BACKEND_URL}/admin/payment-proofs/${id}/approve`;
+    const backendUrl = `${BACKEND_URL}/api/admin/payment-proofs/${id}/approve`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

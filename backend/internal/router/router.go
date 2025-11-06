@@ -144,20 +144,24 @@ func Setup(cfg *config.Config, db *database.DB, redisCache *cache.RedisCache, ni
 		bookings := api.Group("/bookings")
 		bookings.Use(middleware.BookingRateLimiter.Middleware())
 		{
-			// Public endpoint - can create hold without authentication
+			// Public endpoints - can use without authentication
 			bookings.POST("/hold", bookingHandler.CreateBookingHold)
-			
-			// Public search by phone
 			bookings.GET("/search", bookingHandler.SearchBookingsByPhone)
+			
+			// Optional auth endpoints - work with or without authentication
+			optionalAuth := bookings.Group("")
+			optionalAuth.Use(middleware.OptionalAuth(cfg.JWT.Secret))
+			{
+				optionalAuth.POST("/", bookingHandler.CreateBooking)
+				optionalAuth.POST("/:id/confirm", bookingHandler.ConfirmBooking)
+			}
 
 			// Protected endpoints - require authentication
 			protected := bookings.Group("")
 			protected.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
 			{
-				protected.POST("/", bookingHandler.CreateBooking)
 				protected.GET("/", bookingHandler.GetBookings)
 				protected.GET("/:id", bookingHandler.GetBookingByID)
-				protected.POST("/:id/confirm", bookingHandler.ConfirmBooking)
 				protected.POST("/:id/cancel", bookingHandler.CancelBooking)
 				protected.POST("/sync", bookingHandler.SyncBookings)
 

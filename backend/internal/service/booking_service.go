@@ -242,7 +242,8 @@ func (s *BookingService) CancelBooking(ctx context.Context, bookingID int, guest
 		}, nil
 	}
 
-	if booking.GuestID != guestID {
+	// Check if booking belongs to guest (only for authenticated users)
+	if booking.GuestID != nil && *booking.GuestID != guestID {
 		return &models.CancelBookingResponse{
 			Success: false,
 			Message: "Unauthorized to cancel this booking",
@@ -271,8 +272,8 @@ func (s *BookingService) GetBookingByID(ctx context.Context, bookingID int, gues
 		return nil, nil
 	}
 
-	// Verify booking belongs to guest
-	if booking.GuestID != guestID {
+	// Verify booking belongs to guest (only for authenticated users)
+	if booking.GuestID != nil && *booking.GuestID != guestID {
 		return nil, errors.New("unauthorized to view this booking")
 	}
 

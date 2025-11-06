@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Otherwise, get all room types from backend
-    const backendUrl = `${BACKEND_URL}/rooms/types`;
+    const backendUrl = `${BACKEND_URL}/api/rooms/types`;
     
     console.log('[Rooms Proxy] Calling backend:', backendUrl);
 

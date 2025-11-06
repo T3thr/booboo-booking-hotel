@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useBooking } from '@/hooks/use-bookings';
 import { useBookingStore } from '@/store/useBookingStore';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loading } from '@/components/ui/loading';
+import { Toast } from '@/components/ui/toast';
 import { formatDate } from '@/utils/date';
 
 export default function BookingConfirmationPage() {
@@ -14,6 +15,7 @@ export default function BookingConfirmationPage() {
   const params = useParams();
   const bookingId = parseInt(params.id as string);
   const { clearBooking } = useBookingStore();
+  const [showToast, setShowToast] = useState(true);
 
   const { data: booking, isLoading, error } = useBooking(bookingId);
 
@@ -77,6 +79,16 @@ export default function BookingConfirmationPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Success Toast */}
+      {showToast && (
+        <Toast
+          message="🎉 การจองของคุณสำเร็จแล้ว!"
+          type="success"
+          duration={5000}
+          onClose={() => setShowToast(false)}
+        />
+      )}
+
       <div className="max-w-2xl mx-auto">
         {/* Success Icon */}
         <div className="text-center mb-8">

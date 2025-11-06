@@ -162,14 +162,25 @@ export const bookingApi = {
       guest_account_id: data.guest_account_id,
     };
     
+    console.log('[API] Creating hold with data:', backendData);
+    
     const response = await fetch('/api/bookings/hold', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(backendData),
     });
     
-    if (!response.ok) throw new Error(`Create hold failed: ${response.status}`);
-    return response.json();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[API] Create hold failed:', errorData);
+      throw new Error(`Create hold failed: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('[API] Hold created:', result);
+    
+    // Return with session_id for frontend use
+    return { ...result, session_id: sessionId };
   },
   create: async (data: any) => {
     // Get or generate session ID
@@ -207,9 +218,15 @@ export const bookingApi = {
             throw new Error(`Last name must be at least 2 characters: "${lastName}"`);
           }
           
+          // Validate phone for primary guest
+          if (g.is_primary && !g.phone) {
+            throw new Error('Phone number is required for primary guest');
+          }
+          
           return {
             first_name: firstName,
             last_name: lastName,
+            phone: g.phone || null,
             type: g.type || 'Adult',
             is_primary: g.is_primary || false,
           };

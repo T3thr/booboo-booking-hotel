@@ -5,7 +5,7 @@ import "time"
 // Booking represents a booking in the system
 type Booking struct {
 	BookingID         int       `json:"booking_id" db:"booking_id"`
-	GuestID           int       `json:"guest_id" db:"guest_id"`
+	GuestID           *int      `json:"guest_id,omitempty" db:"guest_id"` // Nullable for guest bookings
 	VoucherID         *int      `json:"voucher_id,omitempty" db:"voucher_id"`
 	TotalAmount       float64   `json:"total_amount" db:"total_amount"`
 	Status            string    `json:"status" db:"status"`

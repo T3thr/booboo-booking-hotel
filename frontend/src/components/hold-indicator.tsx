@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useBookingStore } from '@/store/useBookingStore';
 
 interface HoldData {
   sessionId: string;
@@ -11,6 +12,8 @@ interface HoldData {
   roomTypeName: string;
   checkIn: string;
   checkOut: string;
+  adults: number;
+  children: number;
   holdExpiry: string;
 }
 
@@ -35,9 +38,14 @@ export function HoldIndicator() {
           } else {
             // Expired, remove it
             localStorage.removeItem('booking_hold');
+            sessionStorage.removeItem('booking_session_id');
             setHoldData(null);
             setIsVisible(false);
           }
+        } else {
+          // No hold data, hide indicator
+          setHoldData(null);
+          setIsVisible(false);
         }
       } catch (error) {
         console.error('Error checking hold:', error);
@@ -47,7 +55,19 @@ export function HoldIndicator() {
     checkHold();
     const interval = setInterval(checkHold, 1000);
 
-    return () => clearInterval(interval);
+    // Listen for storage changes (when hold is canceled from another tab/component)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'booking_hold') {
+        checkHold();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -77,13 +97,42 @@ export function HoldIndicator() {
   }, [holdData]);
 
   const handleResume = () => {
+    if (!holdData) return;
+    
+    // Restore booking data to store with correct guest counts
+    const bookingStore = useBookingStore.getState();
+    bookingStore.setSearchParams({
+      check_in_date: holdData.checkIn,
+      check_out_date: holdData.checkOut,
+      adults: holdData.adults || 2,
+      children: holdData.children || 0,
+    });
+    bookingStore.setSelectedRoomType(holdData.roomTypeId, {
+      room_type_id: holdData.roomTypeId,
+      name: holdData.roomTypeName,
+    } as any);
+    bookingStore.setHoldExpiry(new Date(holdData.holdExpiry));
+    
+    console.log('[HoldIndicator] Restored booking data:', {
+      adults: holdData.adults,
+      children: holdData.children,
+      roomType: holdData.roomTypeName,
+    });
+    
+    // Navigate to guest info page
     router.push('/booking/guest-info');
   };
 
   const handleDismiss = () => {
     localStorage.removeItem('booking_hold');
+    localStorage.removeItem('booking_guest_draft');
+    sessionStorage.removeItem('booking_session_id');
     setIsVisible(false);
     setHoldData(null);
+    
+    // Clear booking store
+    const bookingStore = useBookingStore.getState();
+    bookingStore.clearBooking();
   };
 
   if (!isVisible || !holdData) return null;

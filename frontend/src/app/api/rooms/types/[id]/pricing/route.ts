@@ -26,7 +26,7 @@ export async function GET(
       );
     }
 
-    const backendUrl = `${BACKEND_URL}/rooms/types/${id}/pricing?checkIn=${checkIn}&checkOut=${checkOut}`;
+    const backendUrl = `${BACKEND_URL}/api/rooms/types/${id}/pricing?checkIn=${checkIn}&checkOut=${checkOut}`;
     
     console.log('[Room Pricing Proxy] Calling backend:', backendUrl);
 

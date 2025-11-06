@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status') || 'pending';
 
-    const backendUrl = `${BACKEND_URL}/admin/payment-proofs?status=${status}`;
+    const backendUrl = `${BACKEND_URL}/api/admin/payment-proofs?status=${status}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

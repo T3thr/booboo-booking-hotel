@@ -22,6 +22,7 @@ func NewBookingHandler(bookingService *service.BookingService) *BookingHandler {
 }
 
 // CreateBookingHold handles POST /api/bookings/hold
+// Works with or without authentication (guest booking)
 func (h *BookingHandler) CreateBookingHold(c *gin.Context) {
 	var req models.CreateBookingHoldRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -29,7 +30,7 @@ func (h *BookingHandler) CreateBookingHold(c *gin.Context) {
 		return
 	}
 
-	// Get guest account ID from context if authenticated
+	// Get guest account ID from context if authenticated (optional for guest bookings)
 	if userID, exists := c.Get("user_id"); exists {
 		guestAccountID := userID.(int)
 		req.GuestAccountID = &guestAccountID
@@ -50,19 +51,18 @@ func (h *BookingHandler) CreateBookingHold(c *gin.Context) {
 }
 
 // CreateBooking handles POST /api/bookings
+// Works with or without authentication (guest booking)
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
-	// Get guest ID from context (must be authenticated)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-		return
-	}
-	guestID := userID.(int)
-
 	var req models.CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	// Get guest ID from context if authenticated (optional for guest bookings)
+	var guestID int
+	if userID, exists := c.Get("user_id"); exists {
+		guestID = userID.(int)
 	}
 
 	response, err := h.bookingService.CreateBooking(c.Request.Context(), guestID, &req)
@@ -75,15 +75,8 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 }
 
 // ConfirmBooking handles POST /api/bookings/:id/confirm
+// Works with or without authentication (guest booking)
 func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
-	// Get guest ID from context (must be authenticated)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
-		return
-	}
-	guestID := userID.(int)
-
 	bookingID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid booking ID"})
@@ -96,15 +89,21 @@ func (h *BookingHandler) ConfirmBooking(c *gin.Context) {
 		return
 	}
 
-	// Verify booking belongs to user
-	booking, err := h.bookingService.GetBookingByID(c.Request.Context(), bookingID, guestID)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-	if booking == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Booking not found"})
-		return
+	// Get guest ID from context if authenticated (optional for guest bookings)
+	var guestID int
+	if userID, exists := c.Get("user_id"); exists {
+		guestID = userID.(int)
+		
+		// If authenticated, verify booking belongs to user
+		booking, err := h.bookingService.GetBookingByID(c.Request.Context(), bookingID, guestID)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		if booking == nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Booking not found"})
+			return
+		}
 	}
 
 	response, err := h.bookingService.ConfirmBooking(c.Request.Context(), bookingID)

@@ -63,9 +63,15 @@ func (r *BookingRepository) CreateBooking(ctx context.Context, guestID int, vouc
 		RETURNING booking_id, guest_id, voucher_id, total_amount, status, created_at, updated_at, policy_name, policy_description
 	`
 
+	// Convert guestID to *int for NULL support
+	var guestIDPtr *int
+	if guestID > 0 {
+		guestIDPtr = &guestID
+	}
+
 	var booking models.Booking
 	err := r.db.Pool.QueryRow(ctx, query,
-		guestID,
+		guestIDPtr,
 		voucherID,
 		totalAmount,
 		policyName,

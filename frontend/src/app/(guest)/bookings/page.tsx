@@ -14,7 +14,12 @@ import { Calendar, Phone, User, Search, CheckCircle, Clock, XCircle } from 'luci
 export default function BookingsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { data: accountBookings, isLoading, error } = useBookings();
+  const { data: bookingsResponse, isLoading, error } = useBookings();
+  
+  // Extract bookings array from response
+  const accountBookings = Array.isArray(bookingsResponse) 
+    ? bookingsResponse 
+    : bookingsResponse?.bookings || [];
   
   const [activeTab, setActiveTab] = useState<'account' | 'phone'>('account');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -25,7 +30,7 @@ export default function BookingsPage() {
 
   // Check if user has phone bookings that can be synced
   useEffect(() => {
-    if (session?.user?.phone && accountBookings) {
+    if (session?.user?.phone && accountBookings && accountBookings.length > 0) {
       const hasPhone = session.user.phone;
       if (hasPhone) {
         setShowSyncPrompt(true);

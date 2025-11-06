@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const backendUrl = `${BACKEND_URL}/rooms/types/${id}`;
+    const backendUrl = `${BACKEND_URL}/api/rooms/types/${id}`;
     
     console.log('[Room Type Detail Proxy] Calling backend:', backendUrl);
 

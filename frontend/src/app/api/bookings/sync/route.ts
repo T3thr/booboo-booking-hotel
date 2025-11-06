@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[Booking Sync] Syncing bookings for phone:', phone);
 
-    const response = await fetch(`${BACKEND_URL}/bookings/sync`, {
+    const response = await fetch(`${BACKEND_URL}/api/bookings/sync`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build backend URL
-    const backendUrl = `${BACKEND_URL}/rooms/search?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`;
+    const backendUrl = `${BACKEND_URL}/api/rooms/search?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}`;
     
     console.log('[Room Search Proxy] Calling backend:', backendUrl);
 

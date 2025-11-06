@@ -14,7 +14,7 @@ export async function POST(
   try {
     const session = await auth();
     const { id } = await params;
-    const backendUrl = `${BACKEND_URL}/bookings/${id}/cancel`;
+    const backendUrl = `${BACKEND_URL}/api/bookings/${id}/cancel`;
     
     console.log('[Booking Cancel Proxy] Calling backend:', backendUrl);
 

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[Booking Search] Searching for phone:', phone);
 
-    const response = await fetch(`${BACKEND_URL}/bookings/search?phone=${encodeURIComponent(phone)}`, {
+    const response = await fetch(`${BACKEND_URL}/api/bookings/search?phone=${encodeURIComponent(phone)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
