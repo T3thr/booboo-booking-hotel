@@ -4,8 +4,7 @@ import { getToken } from 'next-auth/jwt';
 
 // Role-based access control configuration
 const roleAccess: Record<string, string[]> = {
-  // Guest routes
-  '/bookings': ['GUEST', 'RECEPTIONIST', 'MANAGER'],
+  // Guest routes (booking process requires auth)
   '/booking': ['GUEST', 'RECEPTIONIST', 'MANAGER'],
   '/profile': ['GUEST', 'RECEPTIONIST', 'HOUSEKEEPER', 'MANAGER'],
   
@@ -34,6 +33,7 @@ const roleAccess: Record<string, string[]> = {
 const publicRoutes = [
   '/',
   '/rooms',
+  '/bookings', // Allow anyone to view booking history (with phone search)
   '/about',
   '/contact',
   '/auth/signin',
