@@ -114,6 +114,12 @@ export function Navbar() {
                     <span className="hidden lg:inline">ค้นหาห้องพัก</span>
                   </Button>
                 </Link>
+                <Link href="/bookings">
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Calendar className="w-4 h-4" />
+                    <span className="hidden lg:inline">ประวัติการจอง</span>
+                  </Button>
+                </Link>
                 <Link href="/auth/signin">
                   <Button variant="ghost" size="sm" className="gap-2">
                     <User className="w-4 h-4" />

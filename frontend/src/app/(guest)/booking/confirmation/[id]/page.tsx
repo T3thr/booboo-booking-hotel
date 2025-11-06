@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useBooking } from '@/hooks/use-bookings';
+import { useBookingStore } from '@/store/useBookingStore';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loading } from '@/components/ui/loading';
@@ -12,8 +13,14 @@ export default function BookingConfirmationPage() {
   const router = useRouter();
   const params = useParams();
   const bookingId = parseInt(params.id as string);
+  const { clearBooking } = useBookingStore();
 
   const { data: booking, isLoading, error } = useBooking(bookingId);
+
+  // Clear booking store when confirmation page loads
+  useEffect(() => {
+    clearBooking();
+  }, [clearBooking]);
 
   if (isLoading) {
     return (
