@@ -5,9 +5,8 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:808
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.accessToken) {
+    const session = await auth();
+    if (!session?.accessToken) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
