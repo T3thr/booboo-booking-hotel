@@ -6,7 +6,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:808
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { roomTypeId: string } }
+  context: { params: { roomTypeId: string } }
 ) {
   try {
     const session = await auth() as Session | null;
@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const roomTypeId = params.roomTypeId;
+    const roomTypeId = context.params.roomTypeId;
 
     const response = await fetch(`${BACKEND_URL}/api/checkin/available-rooms/${roomTypeId}`, {
       method: 'GET',
