@@ -1,0 +1,52 @@
+========================================
+  สรุปการแก้ไขปัญหา Manager Login
+========================================
+
+✅ แก้ไขไฟล์เรียบร้อยแล้ว:
+   - frontend/src/lib/auth.ts
+   - frontend/src/middleware.ts
+   - frontend/src/app/auth/admin/page.tsx
+   - frontend/src/app/admin/layout.tsx
+   - frontend/.env.production
+
+📝 สร้างเอกสารเรียบร้อยแล้ว:
+   - แก้ไขปัญหา_Manager_Login.md (ภาษาไทย - อ่านไฟล์นี้ก่อน!)
+   - VERCEL_FIX_SUMMARY.md (สรุปสั้น)
+   - frontend/VERCEL_REDIRECT_FIX.md (รายละเอียดเต็ม)
+   - frontend/DEPLOY_CHECKLIST.md (Checklist)
+
+🚀 ขั้นตอนต่อไป (ทำตามลำดับ):
+
+   1. ตั้งค่า Environment Variables บน Vercel Dashboard
+      - ไปที่: https://vercel.com/dashboard
+      - เลือก project: booboo-booking
+      - Settings → Environment Variables
+      - เพิ่ม: NEXTAUTH_URL=https://booboo-booking.vercel.app
+      - เพิ่ม: NEXTAUTH_SECRET=IfXTxsvIgT9p0afnI/8cu5FJSVAU8l5h9TDsupeUbjU=
+      - เพิ่ม: NEXT_PUBLIC_API_URL=https://booboo-booking.onrender.com
+      - เพิ่ม: BACKEND_URL=https://booboo-booking.onrender.com
+      - เพิ่ม: NODE_ENV=production
+      - Save
+
+   2. Deploy โค้ดใหม่
+      git add .
+      git commit -m "fix: แก้ไขปัญหา manager login redirect"
+      git push origin main
+
+   3. รอ Vercel auto-deploy (1-2 นาที)
+
+   4. ทดสอบ login
+      - ไปที่: https://booboo-booking.vercel.app/auth/admin
+      - Login: manager@hotel.com / Manager123!
+      - ควร redirect ไป /admin/dashboard ทันที
+
+⚠️  สำคัญมาก:
+   ต้องตั้งค่า NEXTAUTH_URL=https://booboo-booking.vercel.app
+   บน Vercel Dashboard ก่อน deploy!
+   ถ้าไม่ตั้งค่า จะยังมีปัญหาอยู่!
+
+📚 อ่านเอกสารเพิ่มเติม:
+   - แก้ไขปัญหา_Manager_Login.md (แนะนำ - ภาษาไทย)
+   - frontend/DEPLOY_CHECKLIST.md (Checklist ครบถ้วน)
+
+========================================

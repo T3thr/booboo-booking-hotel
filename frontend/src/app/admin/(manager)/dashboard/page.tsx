@@ -282,7 +282,7 @@ export default function ManagerDashboardPage() {
             ดูทั้งหมด →
           </Link>
         </div>
-        {!recentBookings || recentBookings.bookings?.length === 0 ? (
+        {!recentBookings || !recentBookings.bookings || recentBookings.bookings.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">ยังไม่มีการจอง</p>
         ) : (
           <div className="overflow-x-auto">
@@ -307,7 +307,7 @@ export default function ManagerDashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {recentBookings.bookings.slice(0, 10).map((booking: any) => (
+                {recentBookings.bookings?.slice(0, 10).map((booking: any) => (
                   <tr key={booking.booking_id} className="hover:bg-muted">
                     <td className="px-4 py-3 text-sm font-medium text-foreground">
                       #{booking.booking_id}
