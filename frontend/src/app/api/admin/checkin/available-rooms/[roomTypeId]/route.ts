@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from "@/lib/auth";
+import type { Session } from "next-auth";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
@@ -9,9 +9,9 @@ export async function GET(
   { params }: { params: { roomTypeId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth() as Session | null;
     
-    if (!session?.user?.accessToken) {
+    if (!session?.accessToken) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -23,7 +23,7 @@ export async function GET(
     const response = await fetch(`${BACKEND_URL}/api/checkin/available-rooms/${roomTypeId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${session.user.accessToken}`,
+        'Authorization': `Bearer ${session.accessToken}`,
       },
     });
 
