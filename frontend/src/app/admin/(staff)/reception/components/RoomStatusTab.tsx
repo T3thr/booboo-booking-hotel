@@ -1,21 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRoomStatus } from "@/hooks/use-room-status";
+import { useRoomStatus, type RoomStatus } from "@/hooks/use-room-status";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { Room } from "@/types";
-
-interface RoomStatusSummary {
-  total_rooms: number;
-  vacant_inspected: number;
-  vacant_clean: number;
-  vacant_dirty: number;
-  occupied: number;
-  out_of_service: number;
-  maintenance_required: number;
-}
 
 export default function RoomStatusTab() {
   const { data: rooms, isLoading, error, refetch } = useRoomStatus();
@@ -73,47 +62,23 @@ export default function RoomStatusTab() {
     );
   }
 
-  const roomList: Room[] = Array.isArray(rooms) ? rooms : [];
-
-  // Calculate summary
-  const summary: RoomStatusSummary = roomList.reduce(
-    (acc, room) => {
-      acc.total_rooms++;
-      if (room.occupancy_status === "Occupied") {
-        acc.occupied++;
-      } else if (room.housekeeping_status === "Inspected") {
-        acc.vacant_inspected++;
-      } else if (room.housekeeping_status === "Clean") {
-        acc.vacant_clean++;
-      } else if (
-        room.housekeeping_status === "Dirty" ||
-        room.housekeeping_status === "Cleaning"
-      ) {
-        acc.vacant_dirty++;
-      } else if (room.housekeeping_status === "MaintenanceRequired") {
-        acc.maintenance_required++;
-      } else if (room.housekeeping_status === "OutOfService") {
-        acc.out_of_service++;
-      }
-      return acc;
-    },
-    {
-      total_rooms: 0,
-      vacant_inspected: 0,
-      vacant_clean: 0,
-      vacant_dirty: 0,
-      occupied: 0,
-      out_of_service: 0,
-      maintenance_required: 0,
-    }
-  );
+  const roomList: RoomStatus[] = rooms?.rooms || [];
+  const summary = rooms?.summary || {
+    total_rooms: 0,
+    vacant_inspected: 0,
+    vacant_clean: 0,
+    vacant_dirty: 0,
+    occupied: 0,
+    out_of_service: 0,
+    maintenance_required: 0,
+  };
 
   // Filter rooms
   const filteredRooms = roomList.filter((room) => {
     const matchesSearch =
       room.room_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (room.room_type?.name &&
-        room.room_type.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      (room.room_type_name &&
+        room.room_type_name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     if (filterStatus === "all") return matchesSearch;
     if (filterStatus === "vacant-inspected")
@@ -145,7 +110,7 @@ export default function RoomStatusTab() {
     return matchesSearch;
   });
 
-  const getRoomStatusColor = (room: Room): string => {
+  const getRoomStatusColor = (room: RoomStatus): string => {
     if (room.housekeeping_status === "OutOfService") return "bg-gray-400";
     if (room.housekeeping_status === "MaintenanceRequired") return "bg-orange-500";
     if (room.occupancy_status === "Occupied") return "bg-red-500";
@@ -154,7 +119,7 @@ export default function RoomStatusTab() {
     return "bg-gray-300";
   };
 
-  const getStatusText = (room: Room): string => {
+  const getStatusText = (room: RoomStatus): string => {
     if (room.housekeeping_status === "OutOfService") return "ปิดให้บริการ";
     if (room.housekeeping_status === "MaintenanceRequired") return "ต้องซ่อมบำรุง";
     if (room.occupancy_status === "Occupied") return "มีผู้เข้าพัก";
@@ -268,9 +233,12 @@ export default function RoomStatusTab() {
             <div className="text-center">
               <div className="text-xl font-bold mb-1">{room.room_number}</div>
               <div className="text-xs opacity-90 mb-2">
-                {room.room_type?.name || "ไม่ระบุ"}
+                {room.room_type_name || "ไม่ระบุ"}
               </div>
               <div className="text-xs font-medium">{getStatusText(room)}</div>
+              {room.guest_name && (
+                <div className="text-xs opacity-75 mt-1">{room.guest_name}</div>
+              )}
             </div>
           </Card>
         ))}
