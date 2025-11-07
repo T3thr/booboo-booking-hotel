@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "eslint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "check-env": "node check-env.js",
+    "prebuild": "node check-env.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

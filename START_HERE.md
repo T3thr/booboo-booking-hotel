@@ -48,6 +48,30 @@ docker-compose ps
 
 #### Backend Developer
 1. [Backend Quick Start](./backend/QUICK_START.md)
+
+### 🔧 แก้ปัญหา
+**ปัญหาที่พบบ่อย:**
+
+#### Check-in/Check-out ไม่แสดงข้อมูล
+📄 [Quick Fix Guide](./docs/CHECKIN_CHECKOUT_QUICKFIX.md) - แก้ไขใน 3 ขั้นตอน
+
+```bash
+# 1. เพิ่มข้อมูลทดสอบ
+cd database/migrations
+run_migration_020.bat
+
+# 2. รัน backend
+cd backend
+go run cmd/server/main.go
+
+# 3. รัน frontend
+cd frontend
+npm run dev
+```
+
+**เอกสารเพิ่มเติม:**
+- [Check-in/Check-out Workflow](./docs/CHECKIN_CHECKOUT_WORKFLOW.md) - คู่มือฉบับเต็ม
+- [Receptionist Guide](./docs/user-guides/RECEPTIONIST_GUIDE.md) - คู่มือพนักงาน
 2. [Backend Architecture](./backend/ARCHITECTURE.md)
 3. [API Reference](./docs/api/README.md)
 

@@ -67,10 +67,13 @@ function AdminSignInForm() {
           
           // ✅ Check if user is STAFF (not GUEST)
           if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
-            // Redirect to /admin which will then redirect to role-specific page
-            console.log('[Admin Login] Valid staff role:', role, 'redirecting to /admin');
+            // Redirect directly to role-specific page
+            const redirectUrl = getRoleHomePage(role);
+            console.log('[Admin Login] Valid staff role:', role, 'redirecting to:', redirectUrl);
             toast.success(`ยินดีต้อนรับ ${sessionData.user.name || 'Admin'}!`, { id: 'admin-signin' });
-            router.push('/admin');
+            
+            // Use replace instead of push to avoid back button issues
+            router.replace(redirectUrl);
             router.refresh();
           } else if (role === 'GUEST') {
             // ❌ Guest trying to login via admin page

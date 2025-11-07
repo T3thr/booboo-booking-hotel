@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { AdminSidebar } from '@/components/admin-sidebar';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -13,18 +13,20 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/auth/signin?callbackUrl=/admin');
+      // Redirect to admin login with callback URL
+      router.replace(`/auth/admin?callbackUrl=${encodeURIComponent(pathname)}`);
     } else if (status === 'authenticated') {
       const role = session?.user?.role;
       // Only allow staff roles
       if (role !== 'MANAGER' && role !== 'RECEPTIONIST' && role !== 'HOUSEKEEPER') {
-        router.push('/unauthorized');
+        router.replace('/unauthorized');
       }
     }
-  }, [status, session, router]);
+  }, [status, session, router, pathname]);
 
   if (status === 'loading') {
     return (

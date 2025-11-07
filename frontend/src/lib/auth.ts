@@ -95,11 +95,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async redirect({ url, baseUrl }) {
       console.log('[Redirect Callback] URL:', url, 'Base:', baseUrl);
-      // If callback URL is provided, use it
+      
+      // Parse the URL to check for callbackUrl parameter
+      try {
+        const urlObj = new URL(url, baseUrl);
+        const callbackUrl = urlObj.searchParams.get('callbackUrl');
+        
+        // If there's a valid callback URL, use it
+        if (callbackUrl && callbackUrl.startsWith('/')) {
+          console.log('[Redirect Callback] Using callbackUrl:', callbackUrl);
+          return `${baseUrl}${callbackUrl}`;
+        }
+      } catch (e) {
+        console.log('[Redirect Callback] Error parsing URL:', e);
+      }
+      
+      // If URL starts with baseUrl, use it
       if (url.startsWith(baseUrl)) {
+        console.log('[Redirect Callback] URL starts with baseUrl, using:', url);
         return url;
       }
-      // Otherwise redirect to role-specific home
+      
+      // If URL is a relative path, append to baseUrl
+      if (url.startsWith('/')) {
+        console.log('[Redirect Callback] Relative URL, using:', `${baseUrl}${url}`);
+        return `${baseUrl}${url}`;
+      }
+      
+      // Default to baseUrl
+      console.log('[Redirect Callback] Defaulting to baseUrl');
       return baseUrl;
     }
   },
