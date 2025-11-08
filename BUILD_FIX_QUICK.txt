@@ -1,0 +1,41 @@
+🔧 แก้ไข TypeScript Build Error - Quick Fix
+
+ปัญหา:
+Debug Failure. Expected E:/path === E:\path
+Next.js build worker exited with code: 1
+
+สาเหตุ:
+- TypeScript cache มีปัญหากับ path ใน Windows
+- Forward slash vs Backslash ไม่ตรงกัน
+
+แก้ไข (เลือก 1 วิธี):
+
+วิธีที่ 1 - ใช้ Script:
+cd frontend
+quick-build.bat
+
+วิธีที่ 2 - Manual:
+cd frontend
+rmdir /s /q .next
+rmdir /s /q node_modules\.cache
+npm run build
+
+วิธีที่ 3 - Full Clean:
+cd frontend
+rmdir /s /q .next
+rmdir /s /q node_modules\.cache
+npm cache clean --force
+npm install
+npm run build
+
+หลังจากแก้ไข:
+✅ Build สำเร็จ → Deploy ได้เลย
+git add .
+git commit -m "fix: build error"
+git push
+
+หมายเหตุ:
+- Vercel จะ build สำเร็จเพราะใช้ Linux (ไม่มีปัญหา path)
+- Local Windows อาจมีปัญหา แต่ไม่กระทบ production
+
+ดูรายละเอียด: FIX_TYPESCRIPT_BUILD_ERROR.md

@@ -6,7 +6,6 @@ import { useBookingStore } from '@/store/useBookingStore';
 import { CountdownTimer } from '@/components/countdown-timer';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { formatCurrency } from '@/utils/date';
-import Image from 'next/image';
 
 type PaymentMethod = 'bank_transfer' | 'qr_code' | 'credit_card';
 
@@ -65,7 +64,7 @@ export default function PaymentPage() {
 
     try {
       // Create booking first
-      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
       
       const bookingResponse = await fetch('/api/bookings', {
         method: 'POST',
