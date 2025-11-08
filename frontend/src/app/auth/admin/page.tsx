@@ -2,7 +2,6 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -11,31 +10,31 @@ import { getRoleHomePage } from '@/utils/role-redirect';
 import { toast } from 'sonner';
 
 function AdminSignInForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  
-  // Redirect if already logged in
-  useEffect(() => {
-    if (typeof window === 'undefined') return; // Only run in browser
-    
-    if (status === 'authenticated' && session?.user) {
-      const role = session.user.role || 'GUEST';
-      // Only redirect staff roles
-      if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
-        const redirectUrl = getRoleHomePage(role);
-        console.log('[Admin Login] Already authenticated as staff, redirecting to:', redirectUrl);
-        // Use window.location.href for reliable redirect in production
-        window.location.href = redirectUrl;
-      }
-    }
-  }, [status, session]);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
+  
+  // Redirect if already logged in - use useEffect with proper cleanup
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // Only run in browser
+    if (hasRedirected) return; // Prevent multiple redirects
+    if (status !== 'authenticated' || !session?.user) return;
+    
+    const role = session.user.role || 'GUEST';
+    // Only redirect staff roles
+    if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
+      const redirectUrl = getRoleHomePage(role);
+      console.log('[Admin Login] Already authenticated as staff, redirecting to:', redirectUrl);
+      setHasRedirected(true);
+      // Use window.location.replace to prevent back button issues
+      window.location.replace(redirectUrl);
+    }
+  }, [status, session, hasRedirected]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,9 +124,9 @@ function AdminSignInForm() {
         const redirectUrl = getRoleHomePage(role);
         console.log('[Admin Login] Redirecting to:', redirectUrl);
 
-        // Use window.location for reliable redirect
+        // Use window.location.replace to prevent back button issues
         if (typeof window !== 'undefined') {
-          window.location.href = redirectUrl;
+          window.location.replace(redirectUrl);
         }
         return;
       }
