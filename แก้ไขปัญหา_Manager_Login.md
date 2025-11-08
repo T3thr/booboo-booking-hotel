@@ -1,141 +1,210 @@
-# 🔧 แก้ไขปัญหา Manager Login บน Vercel
+# 🔧 แก้ไขปัญหา Manager Login - Vercel Redirect Loop
 
-## 📌 ปัญหา
-เมื่อ Manager login บน Vercel มัน redirect ไป:
+## 🔴 ปัญหา
+เมื่อ Manager/Admin login ผ่าน `/auth/admin` แล้ว ระบบ redirect กลับไปที่:
 ```
-https://booboo-booking.vercel.app/auth/signin?callbackUrl=%2Fadmin%2Fdashboard
+/auth/signin?callbackUrl=%2Fadmin%2Fdashboard
 ```
-และค้างไม่สามารถเข้า dashboard ได้
+และหน้าจอค้าง ไม่สามารถเข้าหน้า dashboard ได้
 
-## ✅ สาเหตุและการแก้ไข
+## 🔍 สาเหตุ
+1. **Middleware Redirect Loop**: Middleware ตรวจพบว่าผู้ใช้ login แล้วและพยายาม redirect แต่เกิด loop
+2. **NextAuth Redirect Callback**: การจัดการ `callbackUrl` ทำให้เกิดการ redirect ซ้ำซ้อน
+3. **Next.js 15 Router Issue**: `router.replace()` ไม่ทำงานดีกับ middleware ใน Next.js 15
 
-### 1. NEXTAUTH_URL ไม่ถูกต้อง
-**ปัญหา:** ใน `.env.production` ยังเป็น placeholder
-**แก้ไข:** อัปเดตเป็น `https://booboo-booking.vercel.app`
+## ✅ วิธีแก้ไข (แก้ไขแล้ว)
 
-### 2. Redirect Callback ไม่ทำงาน
-**ปัญหา:** NextAuth ไม่ได้จัดการ callbackUrl parameter
-**แก้ไข:** ปรับปรุง redirect callback ใน `auth.ts`
+### 1. แก้ไข `frontend/src/app/auth/admin/page.tsx`
 
-### 3. Redirect Loop
-**ปัญหา:** Admin layout และ middleware redirect ซ้ำซ้อน
-**แก้ไข:** ใช้ `router.replace()` แทน `router.push()`
+**เปลี่ยนการ redirect เป็น hard redirect:**
 
-## 🚀 วิธีแก้ไข (ทำตามขั้นตอน)
+```typescript
+// ❌ เดิม - ใช้ router.replace() ทำให้ค้าง
+router.replace(redirectUrl);
+router.refresh();
 
-### ขั้นตอนที่ 1: ตั้งค่า Environment Variables บน Vercel
+// ✅ ใหม่ - ใช้ window.location.href
+window.location.href = redirectUrl;
+```
 
-1. เข้า **Vercel Dashboard**: https://vercel.com/dashboard
-2. เลือก project **booboo-booking**
-3. ไปที่ **Settings** → **Environment Variables**
-4. เพิ่ม/แก้ไข variables ต่อไปนี้:
+**เพิ่มเวลารอให้ session update:**
+
+```typescript
+// รอให้ session ถูกสร้างก่อน redirect (500ms)
+await new Promise(resolve => setTimeout(resolve, 500));
+```
+
+### 2. แก้ไข `frontend/src/middleware.ts`
+
+**ลบการตรวจสอบ callbackUrl ที่ทำให้เกิด loop:**
+
+```typescript
+// ❌ เดิม - ตรวจสอบ callbackUrl ทำให้เกิด loop
+if (token && pathname.startsWith('/auth/admin')) {
+  const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
+  if (callbackUrl && callbackUrl.startsWith('/')) {
+    return NextResponse.redirect(new URL(callbackUrl, request.url));
+  }
+  // ...
+}
+
+// ✅ ใหม่ - redirect ตรงไปที่หน้าหลักของ role
+if (token && pathname.startsWith('/auth/admin')) {
+  const homeUrl = getRoleHomePage(token.role as string);
+  return NextResponse.redirect(new URL(homeUrl, request.url));
+}
+```
+
+### 3. ตรวจสอบ Environment Variables ใน Vercel
+
+**ไปที่ Vercel Dashboard → Settings → Environment Variables:**
 
 ```bash
-NEXTAUTH_URL=https://booboo-booking.vercel.app
-NEXTAUTH_SECRET=IfXTxsvIgT9p0afnI/8cu5FJSVAU8l5h9TDsupeUbjU=
-NEXT_PUBLIC_API_URL=https://booboo-booking.onrender.com
-BACKEND_URL=https://booboo-booking.onrender.com
+# ✅ ต้องมีทั้งหมดนี้
+NEXTAUTH_URL=https://your-frontend.vercel.app
+NEXTAUTH_SECRET=your-secret-at-least-32-chars
+NEXT_PUBLIC_API_URL=https://your-backend.onrender.com
+BACKEND_URL=https://your-backend.onrender.com
 NODE_ENV=production
-NEXT_PUBLIC_DEBUG=false
-NEXT_PUBLIC_LOG_API=false
 ```
 
-5. คลิก **Save**
+**⚠️ สำคัญมาก:**
+- `NEXTAUTH_URL` ต้องเป็น URL ของ **frontend** (Vercel) ไม่ใช่ backend!
+- `NEXTAUTH_SECRET` ต้องมีอย่างน้อย 32 ตัวอักษร
+- ห้ามมี `/api` ต่อท้าย URL
 
-### ขั้นตอนที่ 2: Deploy โค้ดใหม่
+### 4. Deploy และทดสอบ
 
 ```bash
-# ใน terminal
+cd frontend
 git add .
-git commit -m "fix: แก้ไขปัญหา manager login redirect"
-git push origin main
+git commit -m "fix: admin login redirect loop on Vercel"
+git push
 ```
 
-Vercel จะ auto-deploy ภายใน 1-2 นาที
-
-### ขั้นตอนที่ 3: ทดสอบ
-
-1. ไปที่: https://booboo-booking.vercel.app/auth/admin
-2. Login ด้วย:
-   - Email: `manager@hotel.com`
-   - Password: `Manager123!`
-3. ควร redirect ไป `/admin/dashboard` ทันที
-
-## 📝 ไฟล์ที่แก้ไข
-
-- ✅ `frontend/src/lib/auth.ts` - NextAuth redirect callback
-- ✅ `frontend/src/middleware.ts` - Middleware redirect logic
-- ✅ `frontend/src/app/auth/admin/page.tsx` - Admin login page
-- ✅ `frontend/src/app/admin/layout.tsx` - Admin layout
-- ✅ `frontend/.env.production` - Environment variables
+Vercel จะ auto-deploy ให้อัตโนมัติ (ประมาณ 2-3 นาที)
 
 ## 🧪 การทดสอบ
 
-### ทดสอบ Manager
-```
-URL: /auth/admin
-Email: manager@hotel.com
-Password: Manager123!
-Expected: Redirect to /admin/dashboard
-```
+### ขั้นตอนการทดสอบ:
 
-### ทดสอบ Receptionist
+1. **เปิด Incognito/Private Window** (เพื่อไม่ให้ cache รบกวน)
+2. ไปที่ `https://your-frontend.vercel.app/auth/admin`
+3. Login ด้วย Manager account:
+   ```
+   Email: manager@hotel.com
+   Password: manager123
+   ```
+4. **ผลลัพธ์ที่ถูกต้อง:**
+   - ✅ แสดง toast "เข้าสู่ระบบสำเร็จ!"
+   - ✅ Redirect ไปที่ `/admin/dashboard` ทันที
+   - ✅ แสดงหน้า Manager Dashboard
+
+### ทดสอบ Role อื่นๆ:
+
+**Receptionist:**
 ```
-URL: /auth/admin
 Email: receptionist@hotel.com
-Password: Receptionist123!
-Expected: Redirect to /admin/reception
+Password: receptionist123
+→ ควร redirect ไปที่ /admin/reception
 ```
 
-### ทดสอบ Housekeeper
+**Housekeeper:**
 ```
-URL: /auth/admin
 Email: housekeeper@hotel.com
-Password: Housekeeper123!
-Expected: Redirect to /admin/housekeeping
+Password: housekeeper123
+→ ควร redirect ไปที่ /admin/housekeeping
 ```
 
-## 🔍 ตรวจสอบว่าแก้ไขสำเร็จ
+## 🔧 หากยังมีปัญหา
 
-เปิด Browser DevTools (F12) → Console tab
+### 1. ตรวจสอบ Browser Console (F12)
 
-ควรเห็น logs:
+**Logs ที่ควรเห็น:**
 ```
+[Admin Login] Attempting login for: manager@hotel.com
+[Auth] Calling backend: https://your-backend.onrender.com/api/auth/login
+[Auth] Backend response: { success: true, data: { role_code: 'MANAGER', ... } }
+[Admin Login] Login successful, waiting for session...
+[Admin Login] Session data: { user: { role: 'MANAGER', ... } }
 [Admin Login] Valid staff role: MANAGER redirecting to: /admin/dashboard
-[Middleware] User role: MANAGER
-[Middleware] Access granted
 ```
 
-## ⚠️ หากยังมีปัญหา
+**หากเห็น Error:**
+- `Failed to fetch` → Backend ไม่ตอบสนอง (ตรวจสอบ CORS)
+- `No role in session` → Session ไม่ถูกสร้าง (ตรวจสอบ NEXTAUTH_SECRET)
+- `Guest detected` → Login ด้วย Guest account ผิด
 
-### ลอง Clear Cache
-1. กด `Ctrl + Shift + Delete`
-2. เลือก "Cached images and files" และ "Cookies"
-3. Clear data
-4. ลอง login ใหม่
+### 2. ตรวจสอบ Network Tab
 
-### ลอง Incognito Mode
-1. เปิด browser ใน Incognito/Private mode
-2. ทดสอบ login อีกครั้ง
+**Request ที่ควรเห็น:**
+1. `POST /api/auth/callback/credentials` → Status 200
+2. `GET /api/auth/session` → Status 200, Response มี `user.role`
+3. Navigation ไปที่ `/admin/dashboard`
 
-### ตรวจสอบ Vercel Logs
-1. ไปที่ Vercel Dashboard
-2. เลือก **Deployments**
-3. คลิกที่ deployment ล่าสุด
-4. คลิก **View Function Logs**
-5. ดู error messages
+### 3. Clear Cache และ Cookies
 
-## 📚 เอกสารเพิ่มเติม
+```
+1. เปิด DevTools (F12)
+2. ไปที่ Application tab
+3. Clear Storage → Clear site data
+4. Reload page (Ctrl+Shift+R)
+```
+
+### 4. ตรวจสอบ Backend
+
+**ทดสอบ Backend API:**
+```bash
+curl -X POST https://your-backend.onrender.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"manager@hotel.com","password":"manager123"}'
+```
+
+**Response ที่ถูกต้อง:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": 1,
+    "email": "manager@hotel.com",
+    "role_code": "MANAGER",
+    "user_type": "STAFF",
+    "access_token": "..."
+  }
+}
+```
+
+## 📋 Checklist การแก้ไข
+
+- [x] แก้ไข `frontend/src/app/auth/admin/page.tsx` ใช้ `window.location.href`
+- [x] แก้ไข `frontend/src/middleware.ts` ลบ callbackUrl check
+- [ ] ตรวจสอบ `NEXTAUTH_URL` ใน Vercel (ต้องเป็น frontend URL)
+- [ ] ตรวจสอบ `NEXTAUTH_SECRET` มีอย่างน้อย 32 ตัวอักษร
+- [ ] Deploy ใหม่ไปที่ Vercel
+- [ ] ทดสอบ login ใน Incognito mode
+- [ ] ทดสอบทุก role (Manager, Receptionist, Housekeeper)
+
+## 📝 สรุป
+
+### ปัญหาหลัก:
+1. ❌ Middleware redirect loop กับ callbackUrl parameter
+2. ❌ `router.replace()` ไม่ทำงานกับ middleware ใน Next.js 15
+3. ❌ Session ไม่ได้ update ก่อน redirect
+
+### การแก้ไข:
+1. ✅ ใช้ `window.location.href` แทน `router.replace()`
+2. ✅ ลบการตรวจสอบ callbackUrl ใน middleware
+3. ✅ เพิ่มเวลารอให้ session update (500ms)
+4. ✅ ตรวจสอบ NEXTAUTH_URL ใน Vercel
+
+## 📚 เอกสารที่เกี่ยวข้อง
 
 - `frontend/VERCEL_REDIRECT_FIX.md` - รายละเอียดการแก้ไขแบบเต็ม
 - `frontend/DEPLOY_CHECKLIST.md` - Checklist การ deploy
-- `VERCEL_FIX_SUMMARY.md` - สรุปแบบสั้น
+- `VERCEL_FIX_SUMMARY.md` - สรุปการแก้ไข Vercel
 
-## 🎯 สรุป
+---
 
-**สิ่งสำคัญที่สุด:**
-1. ✅ ตั้งค่า `NEXTAUTH_URL=https://booboo-booking.vercel.app` บน Vercel
-2. ✅ Deploy โค้ดใหม่
-3. ✅ ทดสอบ login
-
-หลังจากทำตามขั้นตอนนี้ Manager จะสามารถ login และเข้า dashboard ได้ทันทีโดยไม่ค้าง! 🎉
+**อัพเดทล่าสุด:** 8 พฤศจิกายน 2025  
+**สถานะ:** ✅ แก้ไขโค้ดแล้ว - รอ Deploy และทดสอบ  
+**ผู้แก้ไข:** Kiro AI Assistant

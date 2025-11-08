@@ -18,11 +18,15 @@ function AdminSignInForm() {
   // Redirect if already logged in
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      const redirectUrl = getRoleHomePage(session.user.role || 'GUEST');
-      console.log('[Admin Login] Already authenticated, redirecting to:', redirectUrl);
-      router.replace(redirectUrl);
+      const role = session.user.role || 'GUEST';
+      // Only redirect staff roles
+      if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
+        const redirectUrl = getRoleHomePage(role);
+        console.log('[Admin Login] Already authenticated as staff, redirecting to:', redirectUrl);
+        window.location.href = redirectUrl; // Use window.location for hard redirect
+      }
     }
-  }, [status, session, router]);
+  }, [status, session]);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -53,8 +57,11 @@ function AdminSignInForm() {
         setError(errorMsg);
         toast.error(errorMsg, { id: 'admin-signin' });
       } else if (result?.ok) {
-        // Wait for session to update
-        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('[Admin Login] Login successful, waiting for session...');
+        toast.success('เข้าสู่ระบบสำเร็จ!', { id: 'admin-signin' });
+        
+        // Wait a bit for session to be established
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Get fresh session
         const response = await fetch('/api/auth/session');
@@ -67,14 +74,11 @@ function AdminSignInForm() {
           
           // ✅ Check if user is STAFF (not GUEST)
           if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
-            // Redirect directly to role-specific page
             const redirectUrl = getRoleHomePage(role);
             console.log('[Admin Login] Valid staff role:', role, 'redirecting to:', redirectUrl);
-            toast.success(`ยินดีต้อนรับ ${sessionData.user.name || 'Admin'}!`, { id: 'admin-signin' });
             
-            // Use replace instead of push to avoid back button issues
-            router.replace(redirectUrl);
-            router.refresh();
+            // Use window.location for hard redirect to avoid middleware issues
+            window.location.href = redirectUrl;
           } else if (role === 'GUEST') {
             // ❌ Guest trying to login via admin page
             console.error('[Admin Login] Guest detected! Rejecting login');

@@ -59,15 +59,9 @@ export async function middleware(request: NextRequest) {
     console.log('[Middleware] Public route, allowing');
     // If already logged in, redirect from auth pages to appropriate home
     if (token && (pathname.startsWith('/auth/signin') || pathname.startsWith('/auth/register') || pathname.startsWith('/auth/admin'))) {
-      // Check if there's a callbackUrl parameter
-      const callbackUrl = request.nextUrl.searchParams.get('callbackUrl');
-      if (callbackUrl && callbackUrl.startsWith('/')) {
-        console.log('[Middleware] Already logged in with callbackUrl, redirecting to:', callbackUrl);
-        return NextResponse.redirect(new URL(callbackUrl, request.url));
-      }
-      
       const homeUrl = getRoleHomePage(token.role as string);
       console.log('[Middleware] Already logged in, redirecting to:', homeUrl);
+      // Use absolute URL for redirect
       return NextResponse.redirect(new URL(homeUrl, request.url));
     }
     return NextResponse.next();
