@@ -62,9 +62,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow API routes to pass through without auth check
+  if (pathname.startsWith('/api/')) {
+    console.log('[Middleware] API route, allowing');
+    return NextResponse.next();
+  }
+
   // Check authentication
   if (!token) {
     console.log('[Middleware] No token, redirecting to signin');
+    // For admin routes, redirect to admin signin
+    if (pathname.startsWith('/admin')) {
+      const url = new URL('/auth/admin', request.url);
+      url.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(url);
+    }
+    // For other routes, redirect to regular signin
     const url = new URL('/auth/signin', request.url);
     url.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(url);

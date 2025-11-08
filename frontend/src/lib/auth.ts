@@ -97,9 +97,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async redirect({ url, baseUrl }) {
       console.log('[Redirect Callback] URL:', url, 'Base:', baseUrl);
       
-      // Don't redirect to signin page after successful login
-      if (url.includes('/auth/signin')) {
-        console.log('[Redirect Callback] Preventing redirect to signin, using baseUrl');
+      // Don't redirect to signin/admin pages after successful login
+      if (url.includes('/auth/signin') || url.includes('/auth/admin')) {
+        console.log('[Redirect Callback] Preventing redirect to auth page, using baseUrl');
         return baseUrl;
       }
       
@@ -108,8 +108,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const urlObj = new URL(url, baseUrl);
         const callbackUrl = urlObj.searchParams.get('callbackUrl');
         
-        // If there's a valid callback URL, use it
-        if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.includes('/auth/signin')) {
+        // If there's a valid callback URL, use it (but not auth pages)
+        if (callbackUrl && callbackUrl.startsWith('/') && 
+            !callbackUrl.includes('/auth/signin') && 
+            !callbackUrl.includes('/auth/admin')) {
           console.log('[Redirect Callback] Using callbackUrl:', callbackUrl);
           return `${baseUrl}${callbackUrl}`;
         }
@@ -117,14 +119,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         console.log('[Redirect Callback] Error parsing URL:', e);
       }
       
-      // If URL starts with baseUrl, use it
-      if (url.startsWith(baseUrl)) {
+      // If URL starts with baseUrl and is not an auth page, use it
+      if (url.startsWith(baseUrl) && !url.includes('/auth/')) {
         console.log('[Redirect Callback] URL starts with baseUrl, using:', url);
         return url;
       }
       
-      // If URL is a relative path, append to baseUrl
-      if (url.startsWith('/')) {
+      // If URL is a relative path (not auth page), append to baseUrl
+      if (url.startsWith('/') && !url.includes('/auth/')) {
         console.log('[Redirect Callback] Relative URL, using:', `${baseUrl}${url}`);
         return `${baseUrl}${url}`;
       }

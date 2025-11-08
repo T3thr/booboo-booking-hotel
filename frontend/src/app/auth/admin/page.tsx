@@ -68,11 +68,16 @@ function AdminSignInForm() {
         console.log('[Admin Login] Login successful, waiting for session...');
         toast.success('เข้าสู่ระบบสำเร็จ!', { id: 'admin-signin' });
         
-        // Wait a bit for session to be established
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for session to be established
+        await new Promise(resolve => setTimeout(resolve, 800));
         
-        // Get fresh session
-        const response = await fetch('/api/auth/session');
+        // Get fresh session with cache busting
+        const response = await fetch('/api/auth/session?t=' + Date.now(), {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        });
         
         if (!response.ok) {
           console.error('[Admin Login] Failed to fetch session');
@@ -102,15 +107,12 @@ function AdminSignInForm() {
           const redirectUrl = getRoleHomePage(role);
           console.log('[Admin Login] Valid staff role:', role, 'redirecting to:', redirectUrl);
           
-          // Don't reset loading - let redirect happen
-          // Use router.push with window.location fallback
-          router.push(redirectUrl);
-          // Force reload after a short delay to ensure middleware processes the new session
-          setTimeout(() => {
-            if (typeof window !== 'undefined') {
-              window.location.href = redirectUrl;
-            }
-          }, 100);
+          // Use window.location for reliable redirect in production
+          if (typeof window !== 'undefined') {
+            window.location.href = redirectUrl;
+          } else {
+            router.push(redirectUrl);
+          }
           return; // Don't reset loading, let redirect happen
         }
         

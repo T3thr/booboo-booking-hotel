@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBookingStore } from '@/store/useBookingStore';
 import { CountdownTimer } from '@/components/countdown-timer';
@@ -24,11 +24,27 @@ export default function PaymentPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Redirect if no booking data
-  if (!searchParams || !selectedRoomType || !guestInfo || !holdExpiry) {
-    router.push('/rooms/search');
-    return null;
+  // Handle client-side mounting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Redirect if no booking data - only on client side
+  useEffect(() => {
+    if (isMounted && (!searchParams || !selectedRoomType || !guestInfo || !holdExpiry)) {
+      router.push('/rooms/search');
+    }
+  }, [isMounted, searchParams, selectedRoomType, guestInfo, holdExpiry, router]);
+
+  // Show loading during SSR or before redirect
+  if (!isMounted || !searchParams || !selectedRoomType || !guestInfo || !holdExpiry) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
   const totalAmount = (selectedRoomType.total_price || 0) * 1.07;
@@ -47,14 +63,12 @@ export default function PaymentPage() {
       setPaymentProof(file);
       setError(null);
       
-      // Create preview URL only in browser
-      if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
-        try {
-          const objectUrl = URL.createObjectURL(file);
-          setPreviewUrl(objectUrl);
-        } catch (err) {
-          console.error('Failed to create object URL:', err);
-        }
+      // Create preview URL - safe for SSR
+      try {
+        const objectUrl = URL.createObjectURL(file);
+        setPreviewUrl(objectUrl);
+      } catch (err) {
+        console.error('Failed to create object URL:', err);
       }
     }
   };
