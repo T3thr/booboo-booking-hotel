@@ -31,8 +31,12 @@ function AdminSignInForm() {
       const redirectUrl = getRoleHomePage(role);
       console.log('[Admin Login] Already authenticated as staff, redirecting to:', redirectUrl);
       setHasRedirected(true);
-      // Use window.location.replace to prevent back button issues
-      window.location.replace(redirectUrl);
+      
+      // Add a small delay to ensure session is fully established in production
+      setTimeout(() => {
+        // Use window.location.replace to prevent back button issues
+        window.location.replace(redirectUrl);
+      }, 100);
     }
   }, [status, session, hasRedirected]);
 

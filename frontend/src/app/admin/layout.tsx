@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AdminSidebar } from '@/components/admin-sidebar';
 import { LoadingSpinner } from '@/components/ui/loading';
 
@@ -14,19 +14,28 @@ export default function AdminLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
+    // Prevent multiple redirects
+    if (hasRedirected) return;
+    
     if (status === 'unauthenticated') {
-      // Redirect to admin login with callback URL
-      router.replace(`/auth/admin?callbackUrl=${encodeURIComponent(pathname)}`);
+      // Redirect to admin login WITHOUT callbackUrl to prevent redirect loops
+      // The admin login page will handle the redirect after successful login
+      console.log('[Admin Layout] Unauthenticated, redirecting to /auth/admin');
+      setHasRedirected(true);
+      router.replace('/auth/admin');
     } else if (status === 'authenticated') {
       const role = session?.user?.role;
       // Only allow staff roles
       if (role !== 'MANAGER' && role !== 'RECEPTIONIST' && role !== 'HOUSEKEEPER') {
+        console.log('[Admin Layout] Invalid role:', role, 'redirecting to /unauthorized');
+        setHasRedirected(true);
         router.replace('/unauthorized');
       }
     }
-  }, [status, session, router, pathname]);
+  }, [status, session, router, pathname, hasRedirected]);
 
   if (status === 'loading') {
     return (

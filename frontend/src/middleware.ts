@@ -59,6 +59,13 @@ export async function middleware(request: NextRequest) {
     console.log('[Middleware] Public route, allowing');
     // Don't redirect from auth pages - let the page handle it
     // This prevents redirect loops during login process
+    
+    // Special handling: If user is authenticated and on /auth/admin, let the page redirect
+    // Don't interfere with the redirect process
+    if (pathname === '/auth/admin' && token) {
+      console.log('[Middleware] Authenticated user on /auth/admin, letting page handle redirect');
+    }
+    
     return NextResponse.next();
   }
 

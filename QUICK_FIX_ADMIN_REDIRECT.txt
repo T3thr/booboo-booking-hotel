@@ -1,0 +1,46 @@
+========================================
+แก้ไข Admin Redirect Loop - Quick Fix
+========================================
+
+ปัญหา:
+- Manager login แล้ว redirect loop ระหว่าง /auth/admin <-> /admin/dashboard
+- เกิดใน production (Vercel) แต่ local ปกติ
+
+สาเหตุ:
+- Session sync ช้าใน production
+- Admin layout redirect พร้อม callbackUrl
+- Login page redirect ทันที → loop!
+
+การแก้ไข:
+1. ลบ callbackUrl จาก admin layout
+2. เพิ่ม hasRedirected state
+3. เพิ่ม 100ms delay ก่อน redirect
+
+Files ที่แก้:
+✅ frontend/src/app/admin/layout.tsx
+✅ frontend/src/app/auth/admin/page.tsx
+✅ frontend/src/middleware.ts
+
+ทดสอบ:
+1. cd frontend
+2. npm run build
+3. npm run start
+4. เปิด http://localhost:3000/auth/admin
+5. Login: manager@hotel.com / Manager123!
+6. ควรไปที่ /admin/dashboard ไม่มี loop
+
+Deploy:
+1. git add .
+2. git commit -m "fix: resolve admin redirect loop"
+3. git push origin main
+4. รอ Vercel auto-deploy (2-3 นาที)
+
+Test Production:
+- URL: https://booboo-booking.vercel.app/auth/admin
+- เปิด Console (F12) ดู logs
+- Login แล้วควรไปที่ dashboard สำเร็จ
+
+========================================
+Status: ✅ Fixed
+Date: 2025-01-08
+========================================
