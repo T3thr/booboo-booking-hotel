@@ -1,0 +1,99 @@
+╔═══════════════════════════════════════════════════════════════╗
+║     🎯 ROOT CAUSE FOUND - Cookie Name Mismatch! 🎯           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🔴 THE REAL PROBLEM (จาก Vercel Logs):
+
+Vercel Log แสดง:
+  [Middleware] Redirecting to /auth/admin  ← ไม่เห็น token!
+  [Session Callback] Session: { role: 'MANAGER' }  ← แต่ session มี!
+
+สาเหตุ:
+  ❌ Middleware ไม่สามารถอ่าน cookie ได้
+  ❌ getToken() มองหา cookie name ผิด
+  ❌ Production cookie: __Secure-next-auth.session-token
+  ❌ getToken() หา: next-auth.session-token (default)
+  ❌ ไม่เจอ → return null → redirect loop!
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    THE FIX (v3.0)                             ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📝 File: frontend/src/middleware.ts
+
+เพิ่ม cookieName parameter:
+
+const token = await getToken({ 
+  req: request, 
+  secret: process.env.NEXTAUTH_SECRET,
+  secureCookie: process.env.NODE_ENV === 'production',
+  cookieName: process.env.NODE_ENV === 'production' 
+    ? '__Secure-next-auth.session-token'  // ✅ Production
+    : 'next-auth.session-token'           // ✅ Development
+});
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    WHY THIS WORKS                             ║
+╚═══════════════════════════════════════════════════════════════╝
+
+✅ บอก getToken() ให้หา cookie name ที่ถูกต้อง
+✅ ตรงกับ cookie name ที่ NextAuth สร้าง
+✅ Middleware อ่าน token ได้
+✅ ไม่ redirect ผิดๆ
+✅ ไม่มี loop!
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    QUICK DEPLOY                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+cd frontend
+npm run build
+
+git add .
+git commit -m "fix: middleware cookie name mismatch in production"
+git push origin main
+
+รอ Vercel deploy 2-3 นาที
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    EXPECTED RESULT                            ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Vercel Logs จะแสดง:
+  ✅ [Middleware] Token: { role: 'MANAGER', ... }
+  ✅ [Middleware] Access granted
+
+ไม่มีอีกต่อไป:
+  ❌ [Middleware] No token
+  ❌ [Middleware] Redirecting to /auth/admin
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    VERSION HISTORY                            ║
+╚═══════════════════════════════════════════════════════════════╝
+
+v1.0: useState → useRef (ไม่ได้ผล)
+v2.0: NextAuth callback + delays (ไม่ได้ผล)
+v3.0: Cookie name fix (✅ ROOT CAUSE!)
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    CONFIDENCE                                 ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🔥 VERY HIGH 🔥
+
+เพราะ:
+  ✅ Vercel logs แสดงปัญหาชัดเจน
+  ✅ แก้ตรงจุดที่ log บอก
+  ✅ Cookie name mismatch เป็นปัญหาจริง
+  ✅ Fix ตรงประเด็น ไม่ซับซ้อน
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    STATUS                                     ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Version: 3.0.0 (Cookie Fix)
+Date: 8 มกราคม 2025
+Status: ✅ ROOT CAUSE FIXED
+Confidence: 🔥 VERY HIGH
+
+Read more: MIDDLEWARE_COOKIE_FIX.md

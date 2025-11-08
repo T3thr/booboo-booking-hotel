@@ -48,10 +48,22 @@ const publicRoutes = [
 ];
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   const { pathname } = request.nextUrl;
-
+  
   console.log('[Middleware] Path:', pathname);
+  console.log('[Middleware] Environment:', process.env.NODE_ENV);
+  
+  // Get token with correct configuration for production
+  const token = await getToken({ 
+    req: request, 
+    secret: process.env.NEXTAUTH_SECRET,
+    // Important: Must match cookie configuration in auth.ts
+    secureCookie: process.env.NODE_ENV === 'production',
+    cookieName: process.env.NODE_ENV === 'production' 
+      ? '__Secure-next-auth.session-token' 
+      : 'next-auth.session-token'
+  });
+  
   console.log('[Middleware] Token:', token ? { role: token.role, email: token.email } : 'No token');
 
   // Allow public routes
