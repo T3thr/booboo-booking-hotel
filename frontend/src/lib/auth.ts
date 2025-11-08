@@ -97,13 +97,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async redirect({ url, baseUrl }) {
       console.log('[Redirect Callback] URL:', url, 'Base:', baseUrl);
       
+      // Don't redirect to signin page after successful login
+      if (url.includes('/auth/signin')) {
+        console.log('[Redirect Callback] Preventing redirect to signin, using baseUrl');
+        return baseUrl;
+      }
+      
       // Parse the URL to check for callbackUrl parameter
       try {
         const urlObj = new URL(url, baseUrl);
         const callbackUrl = urlObj.searchParams.get('callbackUrl');
         
         // If there's a valid callback URL, use it
-        if (callbackUrl && callbackUrl.startsWith('/')) {
+        if (callbackUrl && callbackUrl.startsWith('/') && !callbackUrl.includes('/auth/signin')) {
           console.log('[Redirect Callback] Using callbackUrl:', callbackUrl);
           return `${baseUrl}${callbackUrl}`;
         }

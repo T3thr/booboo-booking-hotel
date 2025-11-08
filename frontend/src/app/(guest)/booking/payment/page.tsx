@@ -45,11 +45,17 @@ export default function PaymentPage() {
         return;
       }
       setPaymentProof(file);
-      // Only create object URL in browser
-      if (typeof window !== 'undefined') {
-        setPreviewUrl(URL.createObjectURL(file));
-      }
       setError(null);
+      
+      // Create preview URL only in browser
+      if (typeof window !== 'undefined' && typeof URL !== 'undefined') {
+        try {
+          const objectUrl = URL.createObjectURL(file);
+          setPreviewUrl(objectUrl);
+        } catch (err) {
+          console.error('Failed to create object URL:', err);
+        }
+      }
     }
   };
 

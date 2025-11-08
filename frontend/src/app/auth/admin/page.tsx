@@ -45,10 +45,12 @@ function AdminSignInForm() {
       console.log('[Admin Login] Attempting login for:', email);
       toast.loading('กำลังเข้าสู่ระบบ...', { id: 'admin-signin' });
       
+      // Use callbackUrl to prevent NextAuth from redirecting to signin
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
+        callbackUrl: '/admin', // Prevent default redirect
       });
 
       console.log('[Admin Login] SignIn result:', result);
