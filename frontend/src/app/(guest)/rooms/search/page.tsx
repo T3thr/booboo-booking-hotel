@@ -106,7 +106,11 @@ export default function RoomSearchPage() {
                 </ul>
               </div>
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.reload();
+                  }
+                }}
                 className="mt-4 bg-destructive text-destructive-foreground px-6 py-2 rounded-lg hover:bg-destructive/90 transition-colors"
               >
                 รีเฟรชหน้าเว็บ

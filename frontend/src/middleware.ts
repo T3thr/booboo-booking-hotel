@@ -57,13 +57,8 @@ export async function middleware(request: NextRequest) {
   // Allow public routes
   if (publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
     console.log('[Middleware] Public route, allowing');
-    // If already logged in, redirect from auth pages to appropriate home
-    if (token && (pathname.startsWith('/auth/signin') || pathname.startsWith('/auth/register') || pathname.startsWith('/auth/admin'))) {
-      const homeUrl = getRoleHomePage(token.role as string);
-      console.log('[Middleware] Already logged in, redirecting to:', homeUrl);
-      // Use absolute URL for redirect
-      return NextResponse.redirect(new URL(homeUrl, request.url));
-    }
+    // Don't redirect from auth pages - let the page handle it
+    // This prevents redirect loops during login process
     return NextResponse.next();
   }
 

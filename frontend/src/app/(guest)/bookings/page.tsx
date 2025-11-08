@@ -79,7 +79,9 @@ export default function BookingsPage() {
       if (response.ok) {
         alert('Bookings synced successfully!');
         setShowSyncPrompt(false);
-        window.location.reload();
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
       }
     } catch (error) {
       console.error('Sync error:', error);
