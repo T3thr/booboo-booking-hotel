@@ -10,22 +10,41 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
+    if (status === 'loading') return;
+
+    if (status === 'unauthenticated') {
+      // Not logged in, redirect to admin login
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/admin';
+      }
+      return;
+    }
+
     if (status === 'authenticated' && session?.user?.role) {
       const role = session.user.role;
       
-      // Redirect based on role
+      // Redirect based on role using window.location for reliability
+      let redirectUrl = '/unauthorized';
+      
       switch (role) {
         case 'MANAGER':
-          router.replace('/admin/dashboard');
+          redirectUrl = '/admin/dashboard';
           break;
         case 'RECEPTIONIST':
-          router.replace('/admin/reception');
+          redirectUrl = '/admin/reception';
           break;
         case 'HOUSEKEEPER':
-          router.replace('/admin/housekeeping');
+          redirectUrl = '/admin/housekeeping';
           break;
-        default:
-          router.replace('/unauthorized');
+      }
+      
+      console.log('[Admin Page] Redirecting to:', redirectUrl);
+      
+      // Use window.location for reliable redirect in production
+      if (typeof window !== 'undefined') {
+        window.location.href = redirectUrl;
+      } else {
+        router.replace(redirectUrl);
       }
     }
   }, [status, session, router]);

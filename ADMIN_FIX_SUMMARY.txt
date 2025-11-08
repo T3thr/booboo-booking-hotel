@@ -1,0 +1,38 @@
+═══════════════════════════════════════════════════════════
+  แก้ไข Admin Redirect Loop - สรุปสั้นๆ
+═══════════════════════════════════════════════════════════
+
+ปัญหา:
+  ❌ URL ค้างที่ /auth/admin?callbackUrl=%2Fadmin%2Fdashboard
+  ❌ ไม่สามารถเข้า /admin/dashboard ได้
+
+การแก้ไข:
+  ✅ เรียก Backend API ตรงๆ ก่อน signIn
+  ✅ Validate role ก่อน
+  ✅ ลบ callbackUrl parameter ออก
+  ✅ ใช้ window.location.href สำหรับ redirect
+
+ไฟล์ที่แก้:
+  1. frontend/src/app/auth/admin/page.tsx
+  2. frontend/src/middleware.ts
+  3. frontend/src/app/admin/page.tsx
+
+Deploy:
+  > deploy-final-admin-fix.bat
+
+หรือ Manual:
+  > git add .
+  > git commit -m "fix: admin redirect loop"
+  > git push
+
+ทดสอบ:
+  1. https://booboo-booking.vercel.app/auth/admin
+  2. Login: manager@hotel.com / Manager123!
+  3. ควรไปที่: /admin/dashboard ✅
+
+ถ้ายังไม่ได้:
+  - Clear cookies
+  - ตรวจสอบ Vercel logs
+  - ตรวจสอบ NEXT_PUBLIC_API_URL
+
+═══════════════════════════════════════════════════════════
