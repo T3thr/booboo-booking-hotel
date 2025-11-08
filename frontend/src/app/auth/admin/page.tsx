@@ -45,18 +45,17 @@ function AdminSignInForm() {
       console.log('[Admin Login] Attempting login for:', email);
       toast.loading('กำลังเข้าสู่ระบบ...', { id: 'admin-signin' });
       
-      // Call backend API directly to avoid NextAuth redirect issues
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      const loginResponse = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Sign in with NextAuth (it will call backend through server-side)
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       });
 
-      if (!loginResponse.ok) {
-        console.error('[Admin Login] Backend login failed:', loginResponse.status);
+      console.log('[Admin Login] SignIn result:', result);
+
+      if (result?.error) {
+        console.error('[Admin Login] Error:', result.error);
         const errorMsg = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
         setError(errorMsg);
         toast.error(errorMsg, { id: 'admin-signin' });
@@ -64,75 +63,76 @@ function AdminSignInForm() {
         return;
       }
 
-      const loginData = await loginResponse.json();
-      console.log('[Admin Login] Backend response:', loginData);
-
-      if (!loginData.success || !loginData.data) {
-        const errorMsg = 'ไม่สามารถเข้าสู่ระบบได้';
-        setError(errorMsg);
-        toast.error(errorMsg, { id: 'admin-signin' });
-        setIsLoading(false);
-        return;
-      }
-
-      const userData = loginData.data;
-      const role = userData.role_code;
-
-      // Check if user is GUEST (not allowed on admin page)
-      if (role === 'GUEST') {
-        console.error('[Admin Login] Guest detected! Rejecting login');
-        const errorMsg = 'บัญชีนี้เป็นบัญชีแขก กรุณาใช้หน้า Guest Login';
-        setError(errorMsg);
-        toast.error(errorMsg, { id: 'admin-signin' });
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if user is STAFF
-      if (role !== 'MANAGER' && role !== 'RECEPTIONIST' && role !== 'HOUSEKEEPER') {
-        console.error('[Admin Login] Invalid role:', role);
-        const errorMsg = 'บัญชีนี้ไม่มีสิทธิ์เข้าถึงระบบ Admin';
-        setError(errorMsg);
-        toast.error(errorMsg, { id: 'admin-signin' });
-        setIsLoading(false);
-        return;
-      }
-
-      // Now sign in with NextAuth using the validated credentials
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
-
-      console.log('[Admin Login] NextAuth result:', result);
-
-      if (result?.error) {
-        console.error('[Admin Login] NextAuth error:', result.error);
-        const errorMsg = 'เกิดข้อผิดพลาดในการสร้าง session';
-        setError(errorMsg);
-        toast.error(errorMsg, { id: 'admin-signin' });
-        setIsLoading(false);
-        return;
-      }
-
       if (result?.ok) {
-        console.log('[Admin Login] Login successful!');
-        toast.success('เข้าสู่ระบบสำเร็จ!', { id: 'admin-signin' });
+        console.log('[Admin Login] Login successful, fetching session...');
         
-        // Determine redirect URL based on role
+        // Wait a bit for session to be established
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Get session to check role
+        const sessionResponse = await fetch('/api/auth/session', {
+          cache: 'no-store',
+        });
+
+        if (!sessionResponse.ok) {
+          console.error('[Admin Login] Failed to fetch session');
+          const errorMsg = 'ไม่สามารถดึงข้อมูล session ได้';
+          setError(errorMsg);
+          toast.error(errorMsg, { id: 'admin-signin' });
+          setIsLoading(false);
+          return;
+        }
+
+        const sessionData = await sessionResponse.json();
+        console.log('[Admin Login] Session data:', sessionData);
+
+        if (!sessionData?.user?.role) {
+          console.error('[Admin Login] No role in session');
+          const errorMsg = 'ไม่พบข้อมูล role';
+          setError(errorMsg);
+          toast.error(errorMsg, { id: 'admin-signin' });
+          setIsLoading(false);
+          return;
+        }
+
+        const role = sessionData.user.role;
+
+        // Check if user is GUEST (not allowed)
+        if (role === 'GUEST') {
+          console.error('[Admin Login] Guest detected! Rejecting');
+          const errorMsg = 'บัญชีนี้เป็นบัญชีแขก กรุณาใช้หน้า Guest Login';
+          setError(errorMsg);
+          toast.error(errorMsg, { id: 'admin-signin' });
+          // Sign out
+          await fetch('/api/auth/signout', { method: 'POST' });
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if user is STAFF
+        if (role !== 'MANAGER' && role !== 'RECEPTIONIST' && role !== 'HOUSEKEEPER') {
+          console.error('[Admin Login] Invalid role:', role);
+          const errorMsg = 'บัญชีนี้ไม่มีสิทธิ์เข้าถึงระบบ Admin';
+          setError(errorMsg);
+          toast.error(errorMsg, { id: 'admin-signin' });
+          setIsLoading(false);
+          return;
+        }
+
+        // Success! Redirect based on role
+        toast.success('เข้าสู่ระบบสำเร็จ!', { id: 'admin-signin' });
         const redirectUrl = getRoleHomePage(role);
         console.log('[Admin Login] Redirecting to:', redirectUrl);
-        
-        // Force redirect using window.location (most reliable in production)
+
+        // Use window.location for reliable redirect
         if (typeof window !== 'undefined') {
           window.location.href = redirectUrl;
         }
-        return; // Don't reset loading, let redirect happen
+        return;
       }
     } catch (err) {
       console.error('[Admin Login] Exception:', err);
-      const errorMsg = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาตรวจสอบการเชื่อมต่อ';
+      const errorMsg = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
       setError(errorMsg);
       toast.error(errorMsg, { id: 'admin-signin' });
       setIsLoading(false);
