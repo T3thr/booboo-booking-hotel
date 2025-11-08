@@ -17,16 +17,18 @@ function AdminSignInForm() {
   
   // Redirect if already logged in
   useEffect(() => {
+    if (typeof window === 'undefined') return; // Only run in browser
+    
     if (status === 'authenticated' && session?.user) {
       const role = session.user.role || 'GUEST';
       // Only redirect staff roles
       if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
         const redirectUrl = getRoleHomePage(role);
         console.log('[Admin Login] Already authenticated as staff, redirecting to:', redirectUrl);
-        window.location.href = redirectUrl; // Use window.location for hard redirect
+        router.push(redirectUrl);
       }
     }
-  }, [status, session]);
+  }, [status, session, router]);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,8 +79,14 @@ function AdminSignInForm() {
             const redirectUrl = getRoleHomePage(role);
             console.log('[Admin Login] Valid staff role:', role, 'redirecting to:', redirectUrl);
             
-            // Use window.location for hard redirect to avoid middleware issues
-            window.location.href = redirectUrl;
+            // Use router.push with window.location fallback
+            router.push(redirectUrl);
+            // Force reload after a short delay to ensure middleware processes the new session
+            setTimeout(() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = redirectUrl;
+              }
+            }, 100);
           } else if (role === 'GUEST') {
             // ❌ Guest trying to login via admin page
             console.error('[Admin Login] Guest detected! Rejecting login');
