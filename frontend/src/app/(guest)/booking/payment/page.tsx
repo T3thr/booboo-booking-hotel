@@ -46,7 +46,10 @@ export default function PaymentPage() {
         return;
       }
       setPaymentProof(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      // Only create object URL in browser
+      if (typeof window !== 'undefined') {
+        setPreviewUrl(URL.createObjectURL(file));
+      }
       setError(null);
     }
   };

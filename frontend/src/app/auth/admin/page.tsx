@@ -58,7 +58,11 @@ function AdminSignInForm() {
         const errorMsg = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
         setError(errorMsg);
         toast.error(errorMsg, { id: 'admin-signin' });
-      } else if (result?.ok) {
+        setIsLoading(false); // Reset loading state
+        return; // Exit early
+      }
+      
+      if (result?.ok) {
         console.log('[Admin Login] Login successful, waiting for session...');
         toast.success('เข้าสู่ระบบสำเร็จ!', { id: 'admin-signin' });
         
@@ -67,55 +71,74 @@ function AdminSignInForm() {
         
         // Get fresh session
         const response = await fetch('/api/auth/session');
-        const sessionData = await response.json();
         
+        if (!response.ok) {
+          console.error('[Admin Login] Failed to fetch session');
+          const errorMsg = 'ไม่สามารถดึงข้อมูล session ได้';
+          setError(errorMsg);
+          toast.error(errorMsg, { id: 'admin-signin' });
+          setIsLoading(false);
+          return;
+        }
+        
+        const sessionData = await response.json();
         console.log('[Admin Login] Session data:', sessionData);
         
-        if (sessionData?.user?.role) {
-          const role = sessionData.user.role;
-          
-          // ✅ Check if user is STAFF (not GUEST)
-          if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
-            const redirectUrl = getRoleHomePage(role);
-            console.log('[Admin Login] Valid staff role:', role, 'redirecting to:', redirectUrl);
-            
-            // Use router.push with window.location fallback
-            router.push(redirectUrl);
-            // Force reload after a short delay to ensure middleware processes the new session
-            setTimeout(() => {
-              if (typeof window !== 'undefined') {
-                window.location.href = redirectUrl;
-              }
-            }, 100);
-          } else if (role === 'GUEST') {
-            // ❌ Guest trying to login via admin page
-            console.error('[Admin Login] Guest detected! Rejecting login');
-            const errorMsg = 'บัญชีนี้เป็นบัญชีแขก กรุณาใช้หน้า Guest Login';
-            setError(errorMsg);
-            toast.error(errorMsg, { id: 'admin-signin' });
-            // Sign out the guest user
-            await fetch('/api/auth/signout', { method: 'POST' });
-          } else {
-            console.error('[Admin Login] Unknown role:', role);
-            const errorMsg = 'ไม่สามารถระบุประเภทบัญชีได้';
-            setError(errorMsg);
-            toast.error(errorMsg, { id: 'admin-signin' });
-          }
-        } else {
+        if (!sessionData?.user?.role) {
           console.error('[Admin Login] No role in session!');
           const errorMsg = 'ไม่พบข้อมูล role กรุณาลองใหม่';
           setError(errorMsg);
           toast.error(errorMsg, { id: 'admin-signin' });
+          setIsLoading(false);
+          return;
         }
+        
+        const role = sessionData.user.role;
+        
+        // ✅ Check if user is STAFF (not GUEST)
+        if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
+          const redirectUrl = getRoleHomePage(role);
+          console.log('[Admin Login] Valid staff role:', role, 'redirecting to:', redirectUrl);
+          
+          // Don't reset loading - let redirect happen
+          // Use router.push with window.location fallback
+          router.push(redirectUrl);
+          // Force reload after a short delay to ensure middleware processes the new session
+          setTimeout(() => {
+            if (typeof window !== 'undefined') {
+              window.location.href = redirectUrl;
+            }
+          }, 100);
+          return; // Don't reset loading, let redirect happen
+        }
+        
+        if (role === 'GUEST') {
+          // ❌ Guest trying to login via admin page
+          console.error('[Admin Login] Guest detected! Rejecting login');
+          const errorMsg = 'บัญชีนี้เป็นบัญชีแขก กรุณาใช้หน้า Guest Login';
+          setError(errorMsg);
+          toast.error(errorMsg, { id: 'admin-signin' });
+          // Sign out the guest user
+          await fetch('/api/auth/signout', { method: 'POST' });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Unknown role
+        console.error('[Admin Login] Unknown role:', role);
+        const errorMsg = 'ไม่สามารถระบุประเภทบัญชีได้';
+        setError(errorMsg);
+        toast.error(errorMsg, { id: 'admin-signin' });
+        setIsLoading(false);
       }
     } catch (err) {
       console.error('[Admin Login] Exception:', err);
-      const errorMsg = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+      const errorMsg = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาตรวจสอบการเชื่อมต่อ';
       setError(errorMsg);
       toast.error(errorMsg, { id: 'admin-signin' });
-    } finally {
       setIsLoading(false);
     }
+    // Note: Don't use finally block - we want to keep loading during redirect
   };
 
   // Show loading while checking session
