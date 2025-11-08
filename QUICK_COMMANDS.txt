@@ -1,0 +1,94 @@
+╔═══════════════════════════════════════════════════════════════╗
+║              Quick Commands - Admin Fix Deployment           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────┐
+│ LOCAL TESTING                                                 │
+└───────────────────────────────────────────────────────────────┘
+
+# Build production
+cd frontend
+npm run build
+
+# Start production server
+npm run start
+
+# Test URL
+http://localhost:3000/auth/admin
+
+# Test account
+manager@hotel.com / Manager123!
+
+┌───────────────────────────────────────────────────────────────┐
+│ DEPLOYMENT                                                    │
+└───────────────────────────────────────────────────────────────┘
+
+# Commit changes
+git add .
+git commit -m "fix: resolve admin redirect loop in production"
+
+# Push to trigger Vercel deploy
+git push origin main
+
+# Wait 2-3 minutes for Vercel auto-deploy
+
+┌───────────────────────────────────────────────────────────────┐
+│ VERIFICATION                                                  │
+└───────────────────────────────────────────────────────────────┘
+
+# Production URL
+https://booboo-booking.vercel.app/auth/admin
+
+# Open browser console (F12)
+# Login with manager account
+# Should redirect to /admin/dashboard
+# No redirect loop
+
+┌───────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                               │
+└───────────────────────────────────────────────────────────────┘
+
+# Clear browser cache
+Ctrl+Shift+Delete
+
+# Check Vercel logs
+https://vercel.com/dashboard → Deployments → Latest → Logs
+
+# Check environment variables
+https://vercel.com/dashboard → Settings → Environment Variables
+
+# Redeploy
+Vercel Dashboard → Deployments → ... → Redeploy
+
+┌───────────────────────────────────────────────────────────────┐
+│ ROLLBACK (if needed)                                          │
+└───────────────────────────────────────────────────────────────┘
+
+# Vercel Dashboard
+Deployments → Previous Deployment → ... → Promote to Production
+
+┌───────────────────────────────────────────────────────────────┐
+│ USEFUL LINKS                                                  │
+└───────────────────────────────────────────────────────────────┘
+
+Vercel:     https://vercel.com/dashboard
+Production: https://booboo-booking.vercel.app
+Backend:    https://booboo-booking.onrender.com
+
+┌───────────────────────────────────────────────────────────────┐
+│ DOCUMENTATION                                                 │
+└───────────────────────────────────────────────────────────────┘
+
+Full Guide (EN):  ADMIN_REDIRECT_LOOP_FIX.md
+Full Guide (TH):  แก้ไข_Admin_Redirect_Loop_สำเร็จ.md
+Quick Fix:        QUICK_FIX_ADMIN_REDIRECT.txt
+Deploy Guide:     DEPLOY_GUIDE_ADMIN_FIX.md
+Env Checklist:    VERCEL_ENV_CHECKLIST.txt
+
+╔═══════════════════════════════════════════════════════════════╗
+║                         STATUS                                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Date: 8 มกราคม 2025
+Status: ✅ Ready to Deploy
+Version: 1.0.0

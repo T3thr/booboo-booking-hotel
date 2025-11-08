@@ -23,9 +23,12 @@ function AdminSignInForm() {
   useEffect(() => {
     if (typeof window === 'undefined') return; // Only run in browser
     if (hasRedirected) return; // Prevent multiple redirects
+    if (status === 'loading') return; // Wait for session to load
     if (status !== 'authenticated' || !session?.user) return;
     
     const role = session.user.role || 'GUEST';
+    console.log('[Admin Login] Checking authenticated user, role:', role);
+    
     // Only redirect staff roles
     if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
       const redirectUrl = getRoleHomePage(role);
@@ -34,9 +37,12 @@ function AdminSignInForm() {
       
       // Add a small delay to ensure session is fully established in production
       setTimeout(() => {
-        // Use window.location.replace to prevent back button issues
-        window.location.replace(redirectUrl);
-      }, 100);
+        console.log('[Admin Login] Executing redirect to:', redirectUrl);
+        // Use window.location.href for more reliable redirect
+        window.location.href = redirectUrl;
+      }, 200);
+    } else {
+      console.log('[Admin Login] Not a staff role, staying on login page');
     }
   }, [status, session, hasRedirected]);
 
@@ -50,10 +56,11 @@ function AdminSignInForm() {
       toast.loading('กำลังเข้าสู่ระบบ...', { id: 'admin-signin' });
       
       // Sign in with NextAuth (it will call backend through server-side)
+      // IMPORTANT: redirect: false to prevent NextAuth from handling redirect
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false,
+        redirect: false, // We handle redirect manually
       });
 
       console.log('[Admin Login] SignIn result:', result);
@@ -128,9 +135,13 @@ function AdminSignInForm() {
         const redirectUrl = getRoleHomePage(role);
         console.log('[Admin Login] Redirecting to:', redirectUrl);
 
-        // Use window.location.replace to prevent back button issues
+        // Add delay to ensure session is fully synced in production
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Use window.location.href for more reliable redirect
         if (typeof window !== 'undefined') {
-          window.location.replace(redirectUrl);
+          console.log('[Admin Login] Executing redirect now');
+          window.location.href = redirectUrl;
         }
         return;
       }

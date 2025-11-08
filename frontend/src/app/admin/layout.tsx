@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { AdminSidebar } from '@/components/admin-sidebar';
 import { LoadingSpinner } from '@/components/ui/loading';
 
@@ -14,28 +14,34 @@ export default function AdminLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [hasRedirected, setHasRedirected] = useState(false);
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent multiple redirects
-    if (hasRedirected) return;
+    // Prevent multiple redirects using ref (persists across re-renders)
+    if (hasRedirectedRef.current) return;
+    
+    // Only redirect if we're certain about the status
+    if (status === 'loading') return;
     
     if (status === 'unauthenticated') {
       // Redirect to admin login WITHOUT callbackUrl to prevent redirect loops
       // The admin login page will handle the redirect after successful login
       console.log('[Admin Layout] Unauthenticated, redirecting to /auth/admin');
-      setHasRedirected(true);
+      hasRedirectedRef.current = true;
       router.replace('/auth/admin');
     } else if (status === 'authenticated') {
       const role = session?.user?.role;
+      console.log('[Admin Layout] Authenticated with role:', role);
       // Only allow staff roles
       if (role !== 'MANAGER' && role !== 'RECEPTIONIST' && role !== 'HOUSEKEEPER') {
         console.log('[Admin Layout] Invalid role:', role, 'redirecting to /unauthorized');
-        setHasRedirected(true);
+        hasRedirectedRef.current = true;
         router.replace('/unauthorized');
+      } else {
+        console.log('[Admin Layout] Valid staff role, allowing access');
       }
     }
-  }, [status, session, router, pathname, hasRedirected]);
+  }, [status, session, router, pathname]);
 
   if (status === 'loading') {
     return (

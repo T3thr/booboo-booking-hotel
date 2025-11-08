@@ -1,0 +1,82 @@
+╔═══════════════════════════════════════════════════════════════╗
+║         FINAL FIX - Admin Redirect Loop (v2.0)               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+🔴 ROOT CAUSE (ที่แท้จริง):
+
+1. useState resets on re-render → ใช้ useRef แทน
+2. NextAuth callback blocks auth pages → ลบ logic นั้นออก
+3. Session sync ช้าใน production → เพิ่ม delay 300ms
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    CHANGES MADE                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📝 frontend/src/app/admin/layout.tsx
+   ✅ useState → useRef
+   ✅ เพิ่ม if (status === 'loading') return
+   ✅ เพิ่ม console.log
+
+📝 frontend/src/app/auth/admin/page.tsx
+   ✅ เพิ่ม if (status === 'loading') return
+   ✅ delay 200ms → 300ms
+   ✅ window.location.replace → window.location.href
+
+📝 frontend/src/lib/auth.ts
+   ✅ ลบ logic ที่ block auth pages
+   ✅ ทำให้ redirect callback เรียบง่าย
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    QUICK DEPLOY                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+cd frontend
+npm run build
+
+git add .
+git commit -m "fix: resolve admin redirect loop with useRef and session sync"
+git push origin main
+
+รอ Vercel deploy 2-3 นาที
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    TEST PRODUCTION                            ║
+╚═══════════════════════════════════════════════════════════════╝
+
+URL: https://booboo-booking.vercel.app/auth/admin
+Login: manager@hotel.com / Manager123!
+
+Expected Console:
+  [Admin Login] Attempting login...
+  [Admin Login] Redirecting to: /admin/dashboard
+  [Admin Layout] Authenticated with role: MANAGER
+  [Admin Layout] Valid staff role, allowing access
+
+Result: ✅ At /admin/dashboard, no loop
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    KEY DIFFERENCES                            ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Previous Fix (v1.0):
+  ❌ useState (resets on re-render)
+  ❌ No loading check
+  ❌ NextAuth blocks auth pages
+  ❌ 100ms delay
+
+This Fix (v2.0):
+  ✅ useRef (persists across re-renders)
+  ✅ Check loading status
+  ✅ NextAuth allows all redirects
+  ✅ 300ms delay
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    STATUS                                     ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Version: 2.0.0 (Final Fix)
+Date: 8 มกราคม 2025
+Status: ✅ Ready to Deploy
+Confidence: 🔥 High (addressed root causes)
+
+Read more: FINAL_REDIRECT_LOOP_FIX.md

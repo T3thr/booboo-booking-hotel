@@ -1,0 +1,101 @@
+╔═══════════════════════════════════════════════════════════════╗
+║          Vercel Environment Variables Checklist              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📍 ไปที่: Vercel Dashboard → Your Project → Settings → Environment Variables
+
+┌───────────────────────────────────────────────────────────────┐
+│ 1. API CONFIGURATION                                          │
+└───────────────────────────────────────────────────────────────┘
+
+□ NEXT_PUBLIC_API_URL
+  Value: https://booboo-booking.onrender.com
+  Environment: Production, Preview, Development
+
+□ BACKEND_URL
+  Value: https://booboo-booking.onrender.com
+  Environment: Production, Preview, Development
+
+┌───────────────────────────────────────────────────────────────┐
+│ 2. NEXTAUTH CONFIGURATION                                     │
+└───────────────────────────────────────────────────────────────┘
+
+□ NEXTAUTH_URL
+  Value: https://booboo-booking.vercel.app
+  Environment: Production
+  Note: ใช้ URL ของ Vercel deployment
+
+□ NEXTAUTH_SECRET
+  Value: IfXTxsvIgT9p0afnI/8cu5FJSVAU8l5h9TDsupeUbjU=
+  Environment: Production, Preview, Development
+  Note: ใช้ secret เดียวกันทุก environment
+
+□ AUTH_TRUST_HOST
+  Value: true
+  Environment: Production, Preview, Development
+  Note: Required for Next.js 15+
+
+┌───────────────────────────────────────────────────────────────┐
+│ 3. ENVIRONMENT                                                │
+└───────────────────────────────────────────────────────────────┘
+
+□ NODE_ENV
+  Value: production
+  Environment: Production
+  Note: Vercel ตั้งค่าให้อัตโนมัติ (optional)
+
+┌───────────────────────────────────────────────────────────────┐
+│ 4. OPTIONAL - DEBUG FLAGS                                     │
+└───────────────────────────────────────────────────────────────┘
+
+□ NEXT_PUBLIC_DEBUG
+  Value: false
+  Environment: Production
+  Note: ปิด debug mode ใน production
+
+□ NEXT_PUBLIC_LOG_API
+  Value: false
+  Environment: Production
+  Note: ปิด API logging ใน production
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    IMPORTANT NOTES                            ║
+╚═══════════════════════════════════════════════════════════════╝
+
+⚠️  ตัวแปรที่ขึ้นต้นด้วย NEXT_PUBLIC_ จะถูก expose ไปยัง client
+⚠️  ตัวแปรอื่นๆ จะใช้ได้เฉพาะ server-side เท่านั้น
+⚠️  หลังเพิ่ม/แก้ไข environment variables ต้อง redeploy
+
+╔═══════════════════════════════════════════════════════════════╗
+║                   VERIFICATION STEPS                          ║
+╚═══════════════════════════════════════════════════════════════╝
+
+1. □ ตรวจสอบว่าทุกตัวแปรถูกตั้งค่าแล้ว
+2. □ ตรวจสอบว่า Environment เลือกถูกต้อง (Production)
+3. □ Save changes
+4. □ Redeploy (Vercel → Deployments → Redeploy)
+5. □ ทดสอบ login ที่ https://booboo-booking.vercel.app/auth/admin
+
+╔═══════════════════════════════════════════════════════════════╗
+║                    QUICK REFERENCE                            ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Backend (Render):  https://booboo-booking.onrender.com
+Frontend (Vercel): https://booboo-booking.vercel.app
+
+Test Account:
+  Email:    manager@hotel.com
+  Password: Manager123!
+
+Expected Result:
+  ✅ Login สำเร็จ
+  ✅ Redirect to /admin/dashboard
+  ✅ ไม่มี redirect loop
+
+╔═══════════════════════════════════════════════════════════════╗
+║                      STATUS                                   ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Date: 8 มกราคม 2025
+Status: ✅ Ready to deploy
+Version: 1.0.0
