@@ -25,10 +25,11 @@ function AdminSignInForm() {
       if (role === 'MANAGER' || role === 'RECEPTIONIST' || role === 'HOUSEKEEPER') {
         const redirectUrl = getRoleHomePage(role);
         console.log('[Admin Login] Already authenticated as staff, redirecting to:', redirectUrl);
-        router.push(redirectUrl);
+        // Use window.location.href for reliable redirect in production
+        window.location.href = redirectUrl;
       }
     }
-  }, [status, session, router]);
+  }, [status, session]);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
