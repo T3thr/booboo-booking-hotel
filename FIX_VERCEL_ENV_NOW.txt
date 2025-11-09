@@ -1,0 +1,87 @@
+========================================
+แก้ไข Vercel Environment Variables
+========================================
+
+ปัญหา:
+- Error ใน browser console ❌
+- ไม่มี error ใน Render logs ✅
+- = Frontend ไม่เชื่อมต่อ Backend
+
+สาเหตุ:
+BACKEND_URL ไม่ถูกต้องใน Vercel!
+
+========================================
+แก้ไขเลย! (5 นาที)
+========================================
+
+1. เข้า Vercel Dashboard:
+   https://vercel.com/dashboard
+
+2. เลือก project: booboo-booking
+
+3. Settings → Environment Variables
+
+4. เพิ่ม/แก้ไข:
+   BACKEND_URL=https://booboo-booking.onrender.com
+   NEXT_PUBLIC_API_URL=https://booboo-booking.onrender.com
+   
+   (ไม่มี / ท้าย, ไม่มี /api)
+
+5. Scope: ✓ Production ✓ Preview ✓ Development
+
+6. Save
+
+7. Deployments → Latest → Redeploy
+
+8. รอ 1-2 นาที
+
+========================================
+ทดสอบ
+========================================
+
+1. เปิด:
+   https://booboo-booking.vercel.app/api/test-env
+
+2. ต้องเห็น:
+   {
+     "BACKEND_URL": "https://booboo-booking.onrender.com",
+     "NEXT_PUBLIC_API_URL": "https://booboo-booking.onrender.com"
+   }
+
+3. ถ้าเห็น "NOT SET" = ยังไม่ได้ตั้งค่า
+
+========================================
+หลังแก้ไข
+========================================
+
+1. ทดสอบ approve booking:
+   https://booboo-booking.vercel.app/admin/reception
+
+2. ทดสอบ admin/checkin:
+   https://booboo-booking.vercel.app/admin/checkin
+
+3. ทดสอบ guest booking:
+   สร้าง booking ใหม่
+
+========================================
+ถ้ายังไม่ได้
+========================================
+
+1. ตรวจสอบ Vercel Function Logs:
+   Deployments → Latest → Function Logs
+
+2. ตรวจสอบ Network Tab (F12):
+   ดู request URL ไปที่ไหน
+
+3. อ่าน: VERCEL_ENV_FIX.md
+
+========================================
+สรุป
+========================================
+
+✅ สร้าง test endpoint: /api/test-env
+✅ ตั้งค่า BACKEND_URL ใน Vercel
+✅ Redeploy
+✅ ทดสอบ
+
+เริ่มเลย! 🚀
