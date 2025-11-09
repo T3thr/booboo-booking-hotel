@@ -1,0 +1,71 @@
+========================================
+แก้ไขปัญหา Production - Quick Fix
+========================================
+
+ปัญหา:
+1. ❌ Approve booking error 500
+2. ❌ Admin/checkin ไม่โหลดข้อมูล  
+3. ❌ Guest data ส่ง mock (Fon Testuser)
+
+========================================
+วิธีแก้ไข (เร็วที่สุด)
+========================================
+
+1. รัน Script:
+   > fix-all-production-issues.bat
+
+2. Deploy:
+   > git add .
+   > git commit -m "fix: production issues"
+   > git push origin main
+
+3. รอ Auto-deploy (3-7 นาที)
+
+4. ทดสอบ:
+   - https://booboo-booking.vercel.app/admin/reception
+   - https://booboo-booking.vercel.app/admin/checkin
+
+========================================
+ถ้ายังไม่ได้ (Manual Fix)
+========================================
+
+1. Rebuild Backend:
+   cd backend
+   go build -o hotel-booking-server.exe ./cmd/server
+   taskkill /F /IM hotel-booking-server.exe
+   start hotel-booking-server.exe
+
+2. แก้ไข Mock Data:
+   cd database\migrations
+   run_fix_mock_guest_data.bat
+
+3. ตรวจสอบ Database:
+   psql -h ... -U postgres -d neondb
+   
+   -- ดู booking ที่ PendingPayment
+   SELECT * FROM bookings WHERE status = 'PendingPayment';
+   
+   -- ดู booking วันนี้
+   SELECT * FROM booking_details WHERE check_in_date = CURRENT_DATE;
+   
+   -- ดู mock data
+   SELECT * FROM booking_guests WHERE first_name = 'Fon';
+
+========================================
+ผลลัพธ์ที่คาดหวัง
+========================================
+
+✅ Approve booking ทำงานได้
+✅ Checkin page แสดงข้อมูล
+✅ Guest data ใช้ข้อมูลจาก account
+✅ ไม่มี "Fon Testuser" อีกต่อไป
+
+========================================
+เอกสารเพิ่มเติม
+========================================
+
+- PRODUCTION_ISSUES_FIX.md (รายละเอียดเต็ม)
+- COMPLETE_FIX_GUIDE.md (คู่มือแก้ไข guest data)
+- TESTING_CHECKLIST.md (checklist ทดสอบ)
+
+========================================
