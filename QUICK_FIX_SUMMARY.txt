@@ -1,0 +1,74 @@
+================================================================================
+แก้ไขปัญหา Production - สรุปสั้น
+================================================================================
+
+ปัญหา:
+1. CORS Error: Frontend (Vercel) ไม่สามารถเรียก Backend (Render) ได้
+2. Check-in Page: ไม่แสดงข้อมูลแขกและ payment proof
+
+แก้ไขแล้ว:
+✅ Backend รองรับ multiple CORS origins
+✅ API ส่งข้อมูล payment proof และ room_type_id
+✅ Code ผ่าน diagnostics ไม่มี error
+
+================================================================================
+วิธี Deploy (เร็วที่สุด)
+================================================================================
+
+1. Deploy Code:
+   > deploy-production-cors-fix.bat
+
+2. ตั้งค่า Render (https://dashboard.render.com):
+   - เลือก service: booboo-booking
+   - Environment tab
+   - เพิ่ม: ALLOWED_ORIGINS=http://localhost:3000,https://booboo-booking.vercel.app
+   - Save Changes
+
+3. รอ 2-5 นาที แล้วทดสอบ:
+   - https://booboo-booking.vercel.app/admin/reception (ดูห้อง)
+   - https://booboo-booking.vercel.app/admin/checkin (ดูแขก)
+
+================================================================================
+ทดสอบว่าสำเร็จ
+================================================================================
+
+✅ เปิด /admin/reception → เห็นห้องทั้งหมด
+✅ เปิด /admin/checkin → เห็นรายการแขก
+✅ Console (F12) → ไม่มี CORS error
+✅ Network tab → API calls status 200
+
+================================================================================
+ถ้ายังไม่ได้
+================================================================================
+
+1. ตรวจสอบ Render Logs: https://dashboard.render.com/web/[service-id]/logs
+2. ตรวจสอบว่า ALLOWED_ORIGINS ไม่มีช่องว่าง
+3. Clear browser cache (Ctrl+Shift+Delete)
+4. Manual Deploy บน Render
+
+================================================================================
+ไฟล์ที่แก้ไข
+================================================================================
+
+backend/internal/models/booking.go          - เพิ่มฟิลด์ payment proof
+backend/internal/repository/booking_repository.go - อัปเดต SQL query
+backend/pkg/config/config.go                - รองรับหลาย CORS origins
+
+================================================================================
+เอกสารเพิ่มเติม
+================================================================================
+
+แก้ไข_Production_สำเร็จ.md     - คู่มือภาษาไทย (แนะนำ)
+PRODUCTION_FIX_COMPLETE.md      - คู่มือภาษาอังกฤษ ฉบับเต็ม
+CORS_PRODUCTION_FIX.md          - รายละเอียด CORS fix
+CHECKIN_DATA_FIX.md             - รายละเอียด check-in data fix
+
+================================================================================
+Login สำหรับทดสอบ
+================================================================================
+
+Manager:      manager@hotel.com / Manager123!
+Receptionist: receptionist@hotel.com / Reception123!
+Housekeeper:  housekeeper@hotel.com / Housekeeper123!
+
+================================================================================

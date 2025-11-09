@@ -146,6 +146,12 @@ func (s *BookingService) CreateBooking(ctx context.Context, guestID int, req *mo
 		return nil, fmt.Errorf("failed to create booking: %w", err)
 	}
 
+	// Get guest account info if authenticated (for filling in missing phone/email)
+	var guestAccount *models.Guest
+	if guestID > 0 {
+		guestAccount, _ = s.bookingRepo.GetGuestByID(ctx, guestID)
+	}
+
 	// Create booking details
 	for _, detail := range req.Details {
 		checkIn, _ := time.Parse("2006-01-02", detail.CheckIn)
@@ -167,11 +173,39 @@ func (s *BookingService) CreateBooking(ctx context.Context, guestID int, req *mo
 
 		// Create guests
 		for _, guest := range detail.Guests {
+			// For primary guest with guest account: ALWAYS use account data
+			phone := guest.Phone
+			email := guest.Email
+			firstName := guest.FirstName
+			lastName := guest.LastName
+			
+			if guest.IsPrimary && guestAccount != nil {
+				// For signed-in users: ALWAYS use account data (override form data)
+				phone = &guestAccount.Phone
+				email = &guestAccount.Email
+				// Also use account name if form name is empty or generic
+				if firstName == "" || firstName == "Guest" || firstName == "Fon" {
+					firstName = guestAccount.FirstName
+				}
+				if lastName == "" || lastName == "Testuser" {
+					lastName = guestAccount.LastName
+				}
+			} else if guest.IsPrimary && guestAccount == nil {
+				// For non-signed-in users: use form data (must be provided)
+				if phone == nil || *phone == "" {
+					return nil, errors.New("phone number is required for primary guest")
+				}
+				if email == nil || *email == "" {
+					return nil, errors.New("email is required for primary guest")
+				}
+			}
+			
 			bookingGuest := &models.BookingGuest{
 				BookingDetailID: bookingDetail.BookingDetailID,
-				FirstName:       guest.FirstName,
-				LastName:        guest.LastName,
-				Phone:           guest.Phone,
+				FirstName:       firstName,
+				LastName:        lastName,
+				Phone:           phone,
+				Email:           email,
 				Type:            guest.Type,
 				IsPrimary:       guest.IsPrimary,
 			}

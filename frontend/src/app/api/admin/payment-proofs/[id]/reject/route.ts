@@ -14,7 +14,8 @@ export async function POST(
   try {
     const session = await auth();
 
-    if (!session || (session.user.role !== 'manager' && session.user.role !== 'receptionist')) {
+    const userRole = session?.user?.role?.toUpperCase();
+    if (!session || !session.accessToken || (userRole !== 'MANAGER' && userRole !== 'RECEPTIONIST')) {
       return NextResponse.json(
         {
           success: false,
@@ -27,7 +28,7 @@ export async function POST(
     const { id } = await params;
     const body = await request.json();
     
-    const backendUrl = `${BACKEND_URL}/api/admin/payment-proofs/${id}/reject`;
+    const backendUrl = `${BACKEND_URL}/api/payment-proofs/${id}/reject`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

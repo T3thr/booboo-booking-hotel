@@ -1,0 +1,225 @@
+================================================================================
+                    PRODUCTION FIX - ARCHITECTURE DIAGRAM
+================================================================================
+
+BEFORE (❌ CORS Error):
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Frontend (Vercel)                    Backend (Render)                 │
+│  https://booboo-booking.vercel.app    https://booboo-booking.onrender.com │
+│                                                                         │
+│  ┌──────────────┐                     ┌──────────────┐                │
+│  │ Admin Panel  │  GET /api/rooms/    │   Go API     │                │
+│  │ /reception   │────────────────────>│              │                │
+│  │              │        ❌            │ CORS Config: │                │
+│  │              │   CORS BLOCKED      │ localhost    │                │
+│  │              │<────────────────────│ only         │                │
+│  └──────────────┘                     └──────────────┘                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+AFTER (✅ Fixed):
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Frontend (Vercel)                    Backend (Render)                 │
+│  https://booboo-booking.vercel.app    https://booboo-booking.onrender.com │
+│                                                                         │
+│  ┌──────────────┐                     ┌──────────────┐                │
+│  │ Admin Panel  │  GET /api/rooms/    │   Go API     │                │
+│  │ /reception   │────────────────────>│              │                │
+│  │              │        ✅            │ CORS Config: │                │
+│  │              │   200 OK + Data     │ localhost +  │                │
+│  │              │<────────────────────│ vercel.app   │                │
+│  └──────────────┘                     └──────────────┘                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        CHECK-IN DATA FLOW
+================================================================================
+
+BEFORE (❌ Missing Data):
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Frontend                  Backend                    Database         │
+│                                                                         │
+│  ┌──────────┐             ┌──────────┐              ┌──────────┐      │
+│  │ Check-in │ GET arrivals│ Handler  │  SQL Query   │ Postgres │      │
+│  │ Page     │────────────>│          │─────────────>│          │      │
+│  │          │             │          │              │ bookings │      │
+│  │ Expects: │             │ Returns: │              │ guests   │      │
+│  │ - room_  │             │ - guest  │              │ room_    │      │
+│  │   type_id│             │   name   │              │   types  │      │
+│  │ - payment│             │ - room   │              │          │      │
+│  │   status │             │   type   │              │ ❌ No    │      │
+│  │ - payment│             │          │              │ payment_ │      │
+│  │   proof  │             │ ❌ Missing│              │ proofs   │      │
+│  │          │             │ fields   │              │ JOIN     │      │
+│  └──────────┘             └──────────┘              └──────────┘      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+AFTER (✅ Complete Data):
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  Frontend                  Backend                    Database         │
+│                                                                         │
+│  ┌──────────┐             ┌──────────┐              ┌──────────┐      │
+│  │ Check-in │ GET arrivals│ Handler  │  SQL Query   │ Postgres │      │
+│  │ Page     │────────────>│          │─────────────>│          │      │
+│  │          │             │          │              │ bookings │      │
+│  │ Shows:   │             │ Returns: │              │ guests   │      │
+│  │ ✅ Guest │             │ ✅ guest │              │ room_    │      │
+│  │   list   │             │   name   │              │   types  │      │
+│  │ ✅ Room  │             │ ✅ room  │              │ payment_ │      │
+│  │   select │             │   type   │              │   proofs │      │
+│  │ ✅ Payment│             │ ✅ room_ │              │          │      │
+│  │   status │             │   type_id│              │ ✅ LEFT  │      │
+│  │ ✅ Proof │             │ ✅ payment│              │ JOIN     │      │
+│  │   image  │             │   status │              │ payment_ │      │
+│  │          │             │ ✅ proof │              │ proofs   │      │
+│  └──────────┘             └──────────┘              └──────────┘      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        CODE CHANGES SUMMARY
+================================================================================
+
+1. backend/pkg/config/config.go
+   ┌────────────────────────────────────────────────────────────┐
+   │ BEFORE:                                                    │
+   │   AllowOrigins: []string{getEnv("FRONTEND_URL", "...")}   │
+   │                                                            │
+   │ AFTER:                                                     │
+   │   if originsStr := getEnv("ALLOWED_ORIGINS", ""); ... {   │
+   │     for _, origin := range splitAndTrim(originsStr, ",")  │
+   │       allowedOrigins = append(allowedOrigins, origin)     │
+   │   }                                                        │
+   └────────────────────────────────────────────────────────────┘
+
+2. backend/internal/models/booking.go
+   ┌────────────────────────────────────────────────────────────┐
+   │ ADDED FIELDS:                                              │
+   │   RoomTypeID      int     `json:"room_type_id"`           │
+   │   PaymentStatus   string  `json:"payment_status"`         │
+   │   PaymentProofURL *string `json:"payment_proof_url"`      │
+   │   PaymentProofID  *int    `json:"payment_proof_id"`       │
+   └────────────────────────────────────────────────────────────┘
+
+3. backend/internal/repository/booking_repository.go
+   ┌────────────────────────────────────────────────────────────┐
+   │ ADDED TO SQL:                                              │
+   │   bd.room_type_id,                                         │
+   │   COALESCE(pp.status, 'none') as payment_status,          │
+   │   pp.image_url as payment_proof_url,                      │
+   │   pp.payment_proof_id                                     │
+   │                                                            │
+   │ ADDED JOIN:                                                │
+   │   LEFT JOIN payment_proofs pp                             │
+   │     ON b.booking_id = pp.booking_id                       │
+   └────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        DEPLOYMENT FLOW
+================================================================================
+
+Step 1: Push Code
+   ┌─────────┐
+   │ Local   │
+   │ Machine │
+   └────┬────┘
+        │ git push
+        ▼
+   ┌─────────┐
+   │ GitHub  │
+   │ main    │
+   └────┬────┘
+        │ webhook
+        ▼
+   ┌─────────┐
+   │ Render  │
+   │ Auto    │
+   │ Deploy  │
+   └─────────┘
+
+Step 2: Configure Environment
+   ┌──────────────────────────────────────┐
+   │ Render Dashboard                     │
+   │ ┌──────────────────────────────────┐ │
+   │ │ Environment Variables            │ │
+   │ │                                  │ │
+   │ │ ALLOWED_ORIGINS=                 │ │
+   │ │   http://localhost:3000,         │ │
+   │ │   https://booboo-booking.        │ │
+   │ │   vercel.app                     │ │
+   │ │                                  │ │
+   │ │ [Save Changes]                   │ │
+   │ └──────────────────────────────────┘ │
+   └──────────────────────────────────────┘
+                │
+                ▼
+   ┌──────────────────────────────────────┐
+   │ Render Redeploys Automatically       │
+   └──────────────────────────────────────┘
+
+Step 3: Test
+   ┌──────────────────────────────────────┐
+   │ Browser                              │
+   │ https://booboo-booking.vercel.app    │
+   │                                      │
+   │ ✅ /admin/reception → Shows rooms    │
+   │ ✅ /admin/checkin → Shows guests     │
+   │ ✅ No CORS errors                    │
+   └──────────────────────────────────────┘
+
+================================================================================
+                        ENVIRONMENT VARIABLES
+================================================================================
+
+Render Backend:
+┌────────────────────────────────────────────────────────────────┐
+│ ALLOWED_ORIGINS=http://localhost:3000,                        │
+│                 https://booboo-booking.vercel.app              │
+│                                                                │
+│ DATABASE_URL=postgresql://neondb_owner:...                    │
+│ JWT_SECRET=IfXTxsvIgT9p0afnI/8cu5FJSVAU8l5h9TDsupeUbjU=       │
+│ PORT=8080                                                      │
+│ GIN_MODE=release                                               │
+│ ENVIRONMENT=production                                         │
+└────────────────────────────────────────────────────────────────┘
+
+Vercel Frontend:
+┌────────────────────────────────────────────────────────────────┐
+│ NEXT_PUBLIC_API_URL=https://booboo-booking.onrender.com       │
+│ BACKEND_URL=https://booboo-booking.onrender.com               │
+│ NEXTAUTH_URL=https://booboo-booking.vercel.app                │
+│ NEXTAUTH_SECRET=IfXTxsvIgT9p0afnI/8cu5FJSVAU8l5h9TDsupeUbjU=  │
+│ NODE_ENV=production                                            │
+└────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                        SUCCESS INDICATORS
+================================================================================
+
+✅ Backend Logs (Render):
+   Configuration loaded successfully
+   Database connection established
+   Starting server on 0.0.0.0:8080 (mode: release)
+
+✅ Frontend Console (Browser):
+   [Admin Layout] Authenticated with role: MANAGER
+   [Admin Layout] Valid staff role, allowing access
+   (No CORS errors)
+
+✅ Network Tab (Browser):
+   GET /api/rooms/status → 200 OK
+   GET /api/checkin/arrivals → 200 OK
+   Response includes all required fields
+
+✅ UI:
+   Room Status page shows all rooms with colors
+   Check-in page shows guest list with payment status
+   Can select rooms and perform check-in
+
+================================================================================

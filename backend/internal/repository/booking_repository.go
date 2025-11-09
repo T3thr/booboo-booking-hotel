@@ -116,8 +116,8 @@ func (r *BookingRepository) CreateBookingDetail(ctx context.Context, detail *mod
 // CreateBookingGuest creates a booking guest
 func (r *BookingRepository) CreateBookingGuest(ctx context.Context, guest *models.BookingGuest) error {
 	query := `
-		INSERT INTO booking_guests (booking_detail_id, first_name, last_name, phone, type, is_primary)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO booking_guests (booking_detail_id, first_name, last_name, phone, email, type, is_primary)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING booking_guest_id
 	`
 
@@ -126,6 +126,7 @@ func (r *BookingRepository) CreateBookingGuest(ctx context.Context, guest *model
 		guest.FirstName,
 		guest.LastName,
 		guest.Phone,
+		guest.Email,
 		guest.Type,
 		guest.IsPrimary,
 	).Scan(&guest.BookingGuestID)
@@ -708,22 +709,38 @@ func (r *BookingRepository) MarkNoShow(ctx context.Context, bookingID int) (*mod
 // GetArrivals retrieves bookings arriving on a specific date
 func (r *BookingRepository) GetArrivals(ctx context.Context, date time.Time) ([]models.ArrivalInfo, error) {
 	query := `
+		WITH primary_guest AS (
+			SELECT DISTINCT ON (bd.booking_id)
+				bd.booking_id,
+				bg.first_name,
+				bg.last_name
+			FROM booking_details bd
+			JOIN booking_guests bg ON bd.booking_detail_id = bg.booking_detail_id
+			WHERE bg.is_primary = true
+			ORDER BY bd.booking_id, bd.booking_detail_id
+		)
 		SELECT 
 			b.booking_id,
 			bd.booking_detail_id,
-			CONCAT(g.first_name, ' ', g.last_name) as guest_name,
+			COALESCE(CONCAT(g.first_name, ' ', g.last_name), CONCAT(pg.first_name, ' ', pg.last_name), 'Guest') as guest_name,
 			rt.name as room_type_name,
+			bd.room_type_id,
 			bd.check_in_date,
 			bd.check_out_date,
 			bd.num_guests,
 			b.status,
-			r.room_number
+			r.room_number,
+			COALESCE(pp.status, 'none') as payment_status,
+			pp.proof_url as payment_proof_url,
+			pp.payment_proof_id
 		FROM bookings b
-		JOIN guests g ON b.guest_id = g.guest_id
+		LEFT JOIN guests g ON b.guest_id = g.guest_id
 		JOIN booking_details bd ON b.booking_id = bd.booking_id
+		LEFT JOIN primary_guest pg ON b.booking_id = pg.booking_id
 		JOIN room_types rt ON bd.room_type_id = rt.room_type_id
 		LEFT JOIN room_assignments ra ON bd.booking_detail_id = ra.booking_detail_id AND ra.status = 'Active'
 		LEFT JOIN rooms r ON ra.room_id = r.room_id
+		LEFT JOIN payment_proofs pp ON b.booking_id = pp.booking_id
 		WHERE bd.check_in_date = $1
 		  AND b.status IN ('Confirmed', 'CheckedIn')
 		ORDER BY b.status DESC, bd.check_in_date
@@ -743,11 +760,15 @@ func (r *BookingRepository) GetArrivals(ctx context.Context, date time.Time) ([]
 			&arrival.BookingDetailID,
 			&arrival.GuestName,
 			&arrival.RoomTypeName,
+			&arrival.RoomTypeID,
 			&arrival.CheckInDate,
 			&arrival.CheckOutDate,
 			&arrival.NumGuests,
 			&arrival.Status,
 			&arrival.RoomNumber,
+			&arrival.PaymentStatus,
+			&arrival.PaymentProofURL,
+			&arrival.PaymentProofID,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan arrival: %w", err)
@@ -953,4 +974,34 @@ func (r *BookingRepository) GetBookingsByPhone(ctx context.Context, phone string
 	}
 
 	return bookings, nil
+}
+
+
+// GetGuestByID retrieves a guest by ID
+func (r *BookingRepository) GetGuestByID(ctx context.Context, guestID int) (*models.Guest, error) {
+	query := `
+		SELECT guest_id, first_name, last_name, email, phone, created_at, updated_at
+		FROM guests
+		WHERE guest_id = $1
+	`
+
+	var guest models.Guest
+	err := r.db.Pool.QueryRow(ctx, query, guestID).Scan(
+		&guest.GuestID,
+		&guest.FirstName,
+		&guest.LastName,
+		&guest.Email,
+		&guest.Phone,
+		&guest.CreatedAt,
+		&guest.UpdatedAt,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get guest: %w", err)
+	}
+
+	return &guest, nil
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useBookingStore } from '@/store/useBookingStore';
 import { useCreateBookingHold } from '@/hooks/use-bookings';
@@ -16,6 +16,7 @@ interface GuestInfo {
   first_name: string;
   last_name: string;
   phone?: string;
+  email?: string;
   type: 'Adult' | 'Child';
   is_primary: boolean;
 }
@@ -27,13 +28,14 @@ export default function GuestInfoPage() {
   const createHold = useCreateBookingHold();
 
   const [guests, setGuests] = useState<GuestInfo[]>([
-    { first_name: '', last_name: '', phone: '', type: 'Adult', is_primary: true },
+    { first_name: '', last_name: '', phone: '', email: '', type: 'Adult', is_primary: true },
   ]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isCreatingHold, setIsCreatingHold] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const holdCreatedRef = useRef(false); // Prevent duplicate hold creation
 
   // Redirect if no search params or room selected
   useEffect(() => {
@@ -44,12 +46,35 @@ export default function GuestInfoPage() {
 
   // Create hold when page loads (if not already created)
   useEffect(() => {
+    // Prevent duplicate calls using ref
+    if (holdCreatedRef.current) {
+      console.log('[Hold] Already created, skipping');
+      return;
+    }
+    
+    // Check if we already have a valid hold in localStorage
+    const existingHold = localStorage.getItem('booking_hold');
+    if (existingHold) {
+      try {
+        const parsed = JSON.parse(existingHold);
+        const expiry = new Date(parsed.holdExpiry);
+        if (expiry > new Date()) {
+          console.log('[Hold] Using existing hold from localStorage');
+          setHoldExpiry(expiry);
+          setIsCreatingHold(false);
+          holdCreatedRef.current = true;
+          return;
+        }
+      } catch (error) {
+        console.error('[Hold] Failed to parse existing hold:', error);
+      }
+    }
+    
     if (searchParams && selectedRoomTypeId && !holdExpiry && !isCreatingHold) {
+      holdCreatedRef.current = true; // Mark as creating
       setIsCreatingHold(true);
       
-      // Clear old session ID to prevent conflicts
-      sessionStorage.removeItem('booking_session_id');
-      console.log('[Hold] Cleared old session ID');
+      console.log('[Hold] Creating new hold...');
       
       const holdData = {
         room_type_id: selectedRoomTypeId,
@@ -59,17 +84,21 @@ export default function GuestInfoPage() {
 
       createHold.mutate(holdData, {
         onSuccess: (data: any) => {
-          console.log('[Hold] Backend response:', data);
+          console.log('[Hold] Success!', data);
           
-          // Use expiry from backend if available, otherwise 15 minutes from now
-          const expiry = data.hold_expiry 
-            ? new Date(data.hold_expiry) 
-            : new Date(Date.now() + 15 * 60 * 1000);
+          // Parse expiry
+          let expiry: Date;
+          if (data.hold_expiry) {
+            expiry = new Date(data.hold_expiry);
+          } else if (data.expiry_time) {
+            expiry = new Date(data.expiry_time);
+          } else if (data.data?.hold_expiry) {
+            expiry = new Date(data.data.hold_expiry);
+          } else {
+            expiry = new Date(Date.now() + 15 * 60 * 1000);
+          }
           
-          setHoldExpiry(expiry);
-          setIsCreatingHold(false);
-          
-          // Save complete hold data to localStorage
+          // Save to localStorage
           const holdInfo = {
             sessionId: data.session_id || `guest_${Date.now()}`,
             roomTypeId: selectedRoomTypeId,
@@ -81,26 +110,30 @@ export default function GuestInfoPage() {
             holdExpiry: expiry.toISOString(),
           };
           localStorage.setItem('booking_hold', JSON.stringify(holdInfo));
-          console.log('[Hold] Saved to localStorage:', holdInfo);
+          
+          // Update state immediately
+          setIsCreatingHold(false);
+          setHoldExpiry(expiry);
+          console.log('[Hold] Hold created successfully');
         },
         onError: (error: any) => {
           console.error('[Hold] Error:', error);
           setIsCreatingHold(false);
+          holdCreatedRef.current = false;
           
-          // Show user-friendly error message
-          const errorMsg = error.message || 'ไม่สามารถจองห้องได้';
-          showToastMessage(errorMsg);
+          showToastMessage(error.message || 'ไม่สามารถจองห้องได้');
           
-          // Redirect after showing error
           setTimeout(() => {
             router.push('/rooms/search');
           }, 2000);
         },
       });
     }
-  }, [searchParams, selectedRoomTypeId, holdExpiry, createHold, setHoldExpiry, router, isCreatingHold]);
+  }, [searchParams, selectedRoomTypeId, holdExpiry, isCreatingHold, createHold, setHoldExpiry, router, selectedRoomType]);
 
   const totalGuests = (searchParams?.adults || 1) + (searchParams?.children || 0);
+
+  // No need for this useEffect anymore - handled in main useEffect above
 
   // Initialize guests array based on search params and restore draft if available
   useEffect(() => {
@@ -125,12 +158,19 @@ export default function GuestInfoPage() {
       // Create new guest list if no valid draft
       const guestList: GuestInfo[] = [];
       
+      // For signed-in users, pre-fill primary guest with account info
+      const accountFirstName = session?.user ? ((session.user as any).first_name || session.user.name?.split(' ')[0] || '') : '';
+      const accountLastName = session?.user ? ((session.user as any).last_name || session.user.name?.split(' ').slice(1).join(' ') || '') : '';
+      const accountPhone = session?.user ? ((session.user as any).phone || '') : '';
+      const accountEmail = session?.user ? (session.user.email || '') : '';
+      
       // Add adults
       for (let i = 0; i < (searchParams.adults || 1); i++) {
         guestList.push({
-          first_name: '',
-          last_name: '',
-          phone: '',
+          first_name: i === 0 && session ? accountFirstName : '',
+          last_name: i === 0 && session ? accountLastName : '',
+          phone: i === 0 && session ? accountPhone : '',
+          email: i === 0 && session ? accountEmail : '',
           type: 'Adult',
           is_primary: i === 0,
         });
@@ -142,6 +182,7 @@ export default function GuestInfoPage() {
           first_name: '',
           last_name: '',
           phone: '',
+          email: '',
           type: 'Child',
           is_primary: false,
         });
@@ -149,7 +190,7 @@ export default function GuestInfoPage() {
       
       setGuests(guestList);
     }
-  }, [searchParams, guests.length]);
+  }, [searchParams, guests.length, session]);
 
   // Auto-save guest data as draft
   useEffect(() => {
@@ -181,11 +222,26 @@ export default function GuestInfoPage() {
       if (!guest.last_name.trim()) {
         newErrors[`guest_${index}_last_name`] = 'Last name is required';
       }
-      if (guest.is_primary && !guest.phone?.trim()) {
-        newErrors[`guest_${index}_phone`] = 'Phone number is required for primary guest';
+      
+      // Phone validation for primary guest
+      if (guest.is_primary && !session) {
+        // Non-signed-in: phone is required
+        if (!guest.phone?.trim()) {
+          newErrors[`guest_${index}_phone`] = 'Phone number is required for primary guest';
+        }
       }
+      // For signed-in users, phone is optional (will use account phone if not provided)
+      
       if (guest.phone && !/^[0-9]{10}$/.test(guest.phone.replace(/[-\s]/g, ''))) {
         newErrors[`guest_${index}_phone`] = 'Please enter a valid 10-digit phone number';
+      }
+      
+      // Email validation for primary guest (first guest only)
+      if (index === 0 && !session && !guest.email?.trim()) {
+        newErrors[`guest_${index}_email`] = 'Email is required for primary guest';
+      }
+      if (guest.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guest.email)) {
+        newErrors[`guest_${index}_email`] = 'Please enter a valid email address';
       }
     });
 
@@ -200,11 +256,46 @@ export default function GuestInfoPage() {
       return;
     }
 
+    // Prepare guest info based on session status
+    let finalGuests = [...guests];
+    
+    if (session?.user) {
+      // For signed-in users: Use account info
+      const accountPhone = (session.user as any).phone || '';
+      const accountEmail = session.user.email || '';
+      const accountFirstName = (session.user as any).first_name || session.user.name?.split(' ')[0] || '';
+      const accountLastName = (session.user as any).last_name || session.user.name?.split(' ').slice(1).join(' ') || '';
+      
+      // Update primary guest with account information
+      finalGuests[0] = {
+        ...finalGuests[0],
+        // Use account name if form is empty, otherwise use form data
+        first_name: finalGuests[0].first_name?.trim() || accountFirstName,
+        last_name: finalGuests[0].last_name?.trim() || accountLastName,
+        // Use phone from form if provided, otherwise use account phone
+        phone: finalGuests[0].phone?.trim() || accountPhone,
+        // Always use account email for signed-in users
+        email: accountEmail,
+      };
+      
+      console.log('[Guest Info] Using account data for primary guest:', {
+        name: `${finalGuests[0].first_name} ${finalGuests[0].last_name}`,
+        email: finalGuests[0].email,
+        phone: finalGuests[0].phone,
+      });
+    } else {
+      // For non-signed-in users: Ensure email and phone are provided
+      console.log('[Guest Info] Non-signed-in user, using form data:', {
+        email: finalGuests[0].email,
+        phone: finalGuests[0].phone,
+      });
+    }
+
     // Store guest info in booking store
-    setGuestInfo(guests);
+    setGuestInfo(finalGuests);
     
     // Keep draft for potential back navigation
-    localStorage.setItem('booking_guest_draft', JSON.stringify(guests));
+    localStorage.setItem('booking_guest_draft', JSON.stringify(finalGuests));
     
     // Navigate to summary page
     router.push('/booking/summary');
@@ -236,33 +327,28 @@ export default function GuestInfoPage() {
       if (holdData) {
         const parsed = JSON.parse(holdData);
         
-        // Call cancel API
-        await fetch('/api/bookings/hold/cancel', {
+        // Call cancel API (don't wait for response)
+        fetch('/api/bookings/hold/cancel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: parsed.sessionId }),
-        });
+        }).catch(err => console.error('[Cancel] API error:', err));
       }
-
-      // Save guest info before clearing (for potential resume)
-      localStorage.setItem('booking_guest_draft', JSON.stringify(guests));
 
       // Clear localStorage and booking store
       localStorage.removeItem('booking_hold');
+      localStorage.removeItem('booking_guest_draft');
       sessionStorage.removeItem('booking_session_id');
       clearBooking();
 
       // Show toast
       showToastMessage('ยกเลิกการจองเรียบร้อยแล้ว');
 
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push('/rooms/search');
-      }, 1500);
+      // Redirect immediately (don't wait)
+      router.push('/rooms/search');
     } catch (error) {
       console.error('[Cancel] Error:', error);
       showToastMessage('ไม่สามารถยกเลิกการจองได้');
-    } finally {
       setIsCanceling(false);
     }
   };
@@ -271,13 +357,17 @@ export default function GuestInfoPage() {
     return <Loading />;
   }
 
-  if (isCreatingHold) {
+  // Show loading only if actually creating hold (simplified)
+  if (isCreatingHold && !holdExpiry) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto text-center">
           <Loading />
-          <p className="text-center mt-4 text-muted-foreground">
+          <p className="mt-4 text-muted-foreground">
             Reserving your room...
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This should only take a moment
           </p>
         </div>
       </div>
@@ -317,6 +407,11 @@ export default function GuestInfoPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     First Name *
+                    {guest.is_primary && session && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        (from account)
+                      </span>
+                    )}
                   </label>
                   <Input
                     value={guest.first_name}
@@ -334,6 +429,11 @@ export default function GuestInfoPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">
                     Last Name *
+                    {guest.is_primary && session && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        (from account)
+                      </span>
+                    )}
                   </label>
                   <Input
                     value={guest.last_name}
@@ -349,23 +449,73 @@ export default function GuestInfoPage() {
                 </div>
 
                 {guest.is_primary && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">
-                      Phone Number *
-                    </label>
-                    <Input
-                      value={guest.phone || ''}
-                      onChange={(e) => handleGuestChange(index, 'phone', e.target.value)}
-                      placeholder="0812345678"
-                      type="tel"
-                      className={errors[`guest_${index}_phone`] ? 'border-red-500' : ''}
-                    />
-                    {errors[`guest_${index}_phone`] && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors[`guest_${index}_phone`]}
-                      </p>
+                  <>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-2">
+                        Phone Number {!session && '*'}
+                        {session && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Optional - will use account phone if not provided)
+                          </span>
+                        )}
+                      </label>
+                      <Input
+                        value={guest.phone || ''}
+                        onChange={(e) => handleGuestChange(index, 'phone', e.target.value)}
+                        placeholder={session ? `${(session.user as any)?.phone || '0812345678'} (from account)` : '0812345678'}
+                        type="tel"
+                        className={errors[`guest_${index}_phone`] ? 'border-red-500' : ''}
+                      />
+                      {errors[`guest_${index}_phone`] && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors[`guest_${index}_phone`]}
+                        </p>
+                      )}
+                      {session && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Leave blank to use: {(session.user as any)?.phone || 'account phone'}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Email field for first guest only when not signed in */}
+                    {index === 0 && !session && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium mb-2">
+                          Email Address *
+                        </label>
+                        <Input
+                          value={guest.email || ''}
+                          onChange={(e) => handleGuestChange(index, 'email', e.target.value)}
+                          placeholder="your.email@example.com"
+                          type="email"
+                          className={errors[`guest_${index}_email`] ? 'border-red-500' : ''}
+                        />
+                        {errors[`guest_${index}_email`] && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errors[`guest_${index}_email`]}
+                          </p>
+                        )}
+                      </div>
                     )}
-                  </div>
+                    
+                    {/* Show account email for signed-in users */}
+                    {index === 0 && session && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium mb-2">
+                          Email Address
+                        </label>
+                        <Input
+                          value={session.user?.email || ''}
+                          disabled
+                          className="bg-muted"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Using email from your account
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </Card>

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`${BACKEND_URL}/api/checkout/departures?date=${date}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${session.user.accessToken}`,
+        'Authorization': `Bearer ${session.accessToken}`,
       },
     });
 

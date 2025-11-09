@@ -1,0 +1,41 @@
+========================================
+⚠️ ต้องทำทันที!
+========================================
+
+## 1. RESTART BACKEND (ทำก่อน!)
+
+Backend ถูกแก้ไขแล้ว แต่ยังไม่ได้ restart!
+
+```bash
+# Stop backend (Ctrl+C)
+cd backend
+./hotel-booking-api.exe
+```
+
+## 2. ทดสอบ Guest Account Booking
+
+1. Login ด้วย guest account
+2. จองห้อง → Complete booking
+3. ไปที่ /admin/reception
+4. ตรวจสอบ:
+   ✅ ชื่อควรเป็นชื่อจริงจาก account
+   ✅ Email ควรเป็น email จาก account  
+   ✅ Phone ควรเป็น phone จาก account
+
+========================================
+สิ่งที่เสร็จแล้ว:
+========================================
+
+✅ Backend ใช้ account data เสมอ
+✅ Hold Indicator มีอยู่แล้ว (มุมขวาล่าง)
+
+========================================
+สิ่งที่ต้องทำต่อ:
+========================================
+
+⏳ สร้าง Arrivals API (แสดงสถานะ hold/confirmed)
+⏳ แก้ไข Checkin Page (แสดงสถานะ)
+
+ดูรายละเอียดใน: COMPLETE_GUEST_BOOKING_FIX.md
+
+========================================

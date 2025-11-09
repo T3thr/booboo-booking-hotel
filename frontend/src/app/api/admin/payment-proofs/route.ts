@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session || (session.user.role !== 'manager' && session.user.role !== 'receptionist')) {
+    const userRole = session?.user?.role?.toUpperCase();
+    if (!session || !session.accessToken || (userRole !== 'MANAGER' && userRole !== 'RECEPTIONIST')) {
       return NextResponse.json(
         {
           success: false,
@@ -23,8 +24,16 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status') || 'pending';
+    const page = searchParams.get('page') || '1';
+    const limit = searchParams.get('limit') || '20';
 
-    const backendUrl = `${BACKEND_URL}/api/admin/payment-proofs?status=${status}`;
+    // Forward all query params to backend
+    const backendParams = new URLSearchParams();
+    backendParams.set('status', status);
+    backendParams.set('page', page);
+    backendParams.set('limit', limit);
+
+    const backendUrl = `${BACKEND_URL}/api/payment-proofs?${backendParams.toString()}`;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

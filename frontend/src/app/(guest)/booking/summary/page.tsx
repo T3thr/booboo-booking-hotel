@@ -32,6 +32,7 @@ export default function BookingSummaryPage() {
   const [voucher, setVoucher] = useState(voucherCode || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [bookingId, setBookingId] = useState<number | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Mock payment details
   const [cardNumber, setCardNumber] = useState('');
@@ -40,12 +41,13 @@ export default function BookingSummaryPage() {
   const [cvv, setCvv] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Redirect if missing required data
+  // Redirect if missing required data (but not if we're processing or navigating)
   useEffect(() => {
-    if (!searchParams || !selectedRoomTypeId || !guestInfo) {
+    if (!isProcessing && !isNavigating && (!searchParams || !selectedRoomTypeId || !guestInfo)) {
+      console.log('[Summary] Missing required data, redirecting to search');
       router.push('/rooms/search');
     }
-  }, [searchParams, selectedRoomTypeId, guestInfo, router]);
+  }, [searchParams, selectedRoomTypeId, guestInfo, router, isProcessing, isNavigating]);
 
   if (!searchParams || !selectedRoomTypeId || !guestInfo) {
     return <Loading />;
@@ -106,6 +108,8 @@ export default function BookingSummaryPage() {
         guests: guestInfo,
         voucher_code: voucher || undefined,
       };
+      
+      console.log('[Summary] Sending booking data:', JSON.stringify(bookingData, null, 2));
 
       const bookingResponse: any = await createBooking.mutateAsync(bookingData);
       console.log('[Summary] Full booking response:', JSON.stringify(bookingResponse, null, 2));
@@ -145,12 +149,43 @@ export default function BookingSummaryPage() {
         payment_id: `MOCK_PAYMENT_${Date.now()}_${bookingIdNumber}`,
       };
       await confirmBooking.mutateAsync({ id: bookingIdNumber, paymentData });
+      console.log('[Summary] Booking confirmed successfully');
 
-      // Success! Clear booking state and hold from localStorage
+      // Success! Save phone for confirmation page access (non-signed-in users)
+      if (!session && guestInfo) {
+        const primaryGuest = guestInfo.find(g => g.is_primary);
+        if (primaryGuest?.phone) {
+          sessionStorage.setItem(`booking_${bookingIdNumber}_phone`, primaryGuest.phone);
+          console.log('[Summary] Saved phone for confirmation access');
+        }
+      }
+      
+      // Set navigating flag FIRST to prevent useEffect redirect
+      setIsNavigating(true);
+      console.log('[Summary] Set navigating flag');
+      
+      // Clear booking state and hold from localStorage
       clearBooking();
       localStorage.removeItem('booking_hold');
-      router.push(`/booking/confirmation/${bookingIdNumber}`);
+      localStorage.removeItem('booking_guest_draft');
+      console.log('[Summary] Cleared booking data');
+      
+      // Mark this booking as viewable once for non-signed-in users
+      if (!session) {
+        sessionStorage.setItem(`booking_${bookingIdNumber}_viewed`, 'false');
+        console.log('[Summary] Marked booking as viewable once');
+      }
+      
+      // Stop processing
+      setIsProcessing(false);
+      
+      // Navigate to confirmation page
+      console.log('[Summary] Navigating to confirmation page:', `/booking/confirmation/${bookingIdNumber}`);
+      
+      // Use window.location for more reliable navigation
+      window.location.href = `/booking/confirmation/${bookingIdNumber}`;
     } catch (error: any) {
+      console.error('[Summary] Error during booking:', error);
       alert('Payment failed: ' + error.message);
       setIsProcessing(false);
     }

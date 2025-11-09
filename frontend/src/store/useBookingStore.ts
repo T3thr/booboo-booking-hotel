@@ -4,6 +4,8 @@ import { RoomSearchParams } from '@/types';
 interface GuestInfo {
   first_name: string;
   last_name: string;
+  phone?: string;
+  email?: string;
   type: 'Adult' | 'Child';
   is_primary: boolean;
 }

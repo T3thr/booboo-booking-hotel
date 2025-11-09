@@ -36,6 +36,7 @@ func Setup(cfg *config.Config, db *database.DB, redisCache *cache.RedisCache, ni
 	inventoryRepo := repository.NewInventoryRepository(db)
 	policyRepo := repository.NewPolicyRepository(db)
 	reportRepo := repository.NewReportRepository(db.Pool)
+	paymentProofRepo := repository.NewPaymentProofRepository(db)
 
 	// Initialize services
 	authService := service.NewAuthService(authRepo, cfg.JWT.Secret)
@@ -46,6 +47,7 @@ func Setup(cfg *config.Config, db *database.DB, redisCache *cache.RedisCache, ni
 	inventoryService := service.NewInventoryService(inventoryRepo, roomRepo)
 	policyService := service.NewPolicyService(policyRepo)
 	reportService := service.NewReportService(reportRepo)
+	paymentProofService := service.NewPaymentProofService(paymentProofRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -59,6 +61,7 @@ func Setup(cfg *config.Config, db *database.DB, redisCache *cache.RedisCache, ni
 	reportHandler := handlers.NewReportHandler(reportService)
 	nightAuditHandler := handlers.NewNightAuditHandler(nightAudit)
 	holdCleanupHandler := handlers.NewHoldCleanupHandler(holdCleanup)
+	paymentProofHandler := handlers.NewPaymentProofHandler(paymentProofService)
 
 	// Serve API documentation
 	r.Static("/docs", "./backend/docs/swagger-ui")
@@ -291,6 +294,17 @@ func Setup(cfg *config.Config, db *database.DB, redisCache *cache.RedisCache, ni
 			reports.GET("/export/revenue", reportHandler.ExportRevenueReport)
 			reports.GET("/export/vouchers", reportHandler.ExportVoucherReport)
 			reports.GET("/export/no-shows", reportHandler.ExportNoShowReport)
+		}
+
+		// Payment Proof routes (Receptionist + Manager)
+		paymentProofs := api.Group("/payment-proofs")
+		paymentProofs.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
+		paymentProofs.Use(middleware.RequireReceptionist()) // RECEPTIONIST or MANAGER
+		{
+			paymentProofs.GET("", paymentProofHandler.GetPaymentProofs)
+			paymentProofs.GET("/:id", paymentProofHandler.GetPaymentProofByID)
+			paymentProofs.POST("/:id/approve", paymentProofHandler.ApprovePaymentProof)
+			paymentProofs.POST("/:id/reject", paymentProofHandler.RejectPaymentProof)
 		}
 
 		// Admin routes (Manager only)

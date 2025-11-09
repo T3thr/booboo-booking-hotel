@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Clock, X } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Clock, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBookingStore } from '@/store/useBookingStore';
 
@@ -19,9 +19,13 @@ interface HoldData {
 
 export function HoldIndicator() {
   const router = useRouter();
+  const pathname = usePathname();
   const [holdData, setHoldData] = useState<HoldData | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [isVisible, setIsVisible] = useState(false);
+
+  // Don't show on booking pages (already have timer there)
+  const isBookingPage = pathname?.startsWith('/booking/');
 
   useEffect(() => {
     // Check for hold data in localStorage
@@ -35,10 +39,16 @@ export function HoldIndicator() {
           if (expiry > new Date()) {
             setHoldData(data);
             setIsVisible(true);
+            console.log('[HoldIndicator] Active hold found:', {
+              roomType: data.roomTypeName,
+              expiry: expiry.toISOString(),
+            });
           } else {
             // Expired, remove it
+            console.log('[HoldIndicator] Hold expired, removing');
             localStorage.removeItem('booking_hold');
             sessionStorage.removeItem('booking_session_id');
+            localStorage.removeItem('booking_guest_draft');
             setHoldData(null);
             setIsVisible(false);
           }
@@ -48,7 +58,7 @@ export function HoldIndicator() {
           setIsVisible(false);
         }
       } catch (error) {
-        console.error('Error checking hold:', error);
+        console.error('[HoldIndicator] Error checking hold:', error);
       }
     };
 
@@ -135,48 +145,64 @@ export function HoldIndicator() {
     bookingStore.clearBooking();
   };
 
-  if (!isVisible || !holdData) return null;
+  // Don't show if on booking pages or no hold data
+  if (!isVisible || !holdData || isBookingPage) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5">
-      <div className="bg-card border border-border rounded-lg shadow-lg p-4 max-w-sm">
+    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300">
+      <div className="bg-gradient-to-br from-primary/10 to-primary/5 border-2 border-primary/20 rounded-xl shadow-2xl p-4 max-w-sm backdrop-blur-sm">
         <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-            <Clock className="w-5 h-5 text-primary" />
+          <div className="flex-shrink-0 w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+            <Clock className="w-6 h-6 text-primary" />
           </div>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-semibold text-sm">Active Hold</h3>
+              <div>
+                <h3 className="font-bold text-sm text-foreground">🔒 Active Booking Hold</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Complete your booking before time runs out
+                </p>
+              </div>
               <button
                 onClick={handleDismiss}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Dismiss"
+                className="text-muted-foreground hover:text-destructive transition-colors p-1 hover:bg-destructive/10 rounded"
+                aria-label="Cancel booking"
+                title="Cancel booking"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             
-            <p className="text-xs text-muted-foreground mb-2">
-              {holdData.roomTypeName}
-            </p>
+            <div className="mt-3 p-2 bg-background/50 rounded-lg">
+              <p className="text-xs font-medium text-foreground mb-1">
+                📍 {holdData.roomTypeName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {new Date(holdData.checkIn).toLocaleDateString()} - {new Date(holdData.checkOut).toLocaleDateString()}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                👥 {holdData.adults} Adult{holdData.adults > 1 ? 's' : ''}{holdData.children > 0 ? `, ${holdData.children} Child${holdData.children > 1 ? 'ren' : ''}` : ''}
+              </p>
+            </div>
             
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center gap-1 text-xs">
-                <Clock className="w-3 h-3" />
-                <span className="font-mono font-semibold text-primary">
+            <div className="flex items-center gap-2 mt-3 p-2 bg-primary/10 rounded-lg">
+              <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Time remaining</p>
+                <p className="font-mono font-bold text-lg text-primary leading-none">
                   {timeLeft}
-                </span>
+                </p>
               </div>
-              <span className="text-xs text-muted-foreground">remaining</span>
             </div>
             
             <Button
               onClick={handleResume}
               size="sm"
-              className="w-full"
+              className="w-full mt-3 font-semibold"
             >
-              Resume Booking
+              <span>Continue Booking</span>
+              <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
         </div>

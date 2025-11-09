@@ -24,9 +24,24 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
     const statusFilter = searchParams.get("status");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = (page - 1) * limit;
 
     // Build SQL query
     let query = `
+      WITH primary_guests AS (
+        SELECT DISTINCT ON (bd.booking_id)
+          bd.booking_id,
+          bg.first_name,
+          bg.last_name,
+          bg.phone,
+          bg.email
+        FROM booking_details bd
+        JOIN booking_guests bg ON bd.booking_detail_id = bg.booking_detail_id
+        WHERE bg.is_primary = true
+        ORDER BY bd.booking_id, bd.booking_detail_id
+      )
       SELECT 
         b.booking_id,
         b.guest_id,
@@ -36,9 +51,10 @@ export async function GET(request: NextRequest) {
         b.updated_at,
         b.policy_name,
         b.policy_description,
-        g.first_name || ' ' || g.last_name AS guest_name,
-        g.email AS guest_email,
-        g.phone AS guest_phone,
+        -- Use guest account info if signed in, otherwise use primary booking guest info
+        COALESCE(g.first_name || ' ' || g.last_name, pg.first_name || ' ' || pg.last_name) AS guest_name,
+        COALESCE(g.email, pg.email) AS guest_email,
+        COALESCE(g.phone, pg.phone) AS guest_phone,
         json_agg(
           DISTINCT jsonb_build_object(
             'booking_detail_id', bd.booking_detail_id,
@@ -67,12 +83,14 @@ export async function GET(request: NextRequest) {
             'first_name', bg.first_name,
             'last_name', bg.last_name,
             'phone', bg.phone,
+            'email', bg.email,
             'type', bg.type,
             'is_primary', bg.is_primary
           )
         ) FILTER (WHERE bg.booking_guest_id IS NOT NULL) AS booking_guests
       FROM bookings b
       LEFT JOIN guests g ON b.guest_id = g.guest_id
+      LEFT JOIN primary_guests pg ON b.booking_id = pg.booking_id
       LEFT JOIN booking_details bd ON b.booking_id = bd.booking_id
       LEFT JOIN room_types rt ON bd.room_type_id = rt.room_type_id
       LEFT JOIN room_assignments ra ON bd.booking_detail_id = ra.booking_detail_id AND ra.status = 'Active'
@@ -89,16 +107,34 @@ export async function GET(request: NextRequest) {
 
     query += `
       GROUP BY b.booking_id, b.guest_id, b.total_amount, b.status, b.created_at, b.updated_at, 
-               b.policy_name, b.policy_description, g.first_name, g.last_name, g.email, g.phone
+               b.policy_name, b.policy_description, g.first_name, g.last_name, g.email, g.phone,
+               pg.first_name, pg.last_name, pg.email, pg.phone
       ORDER BY b.created_at DESC
-      LIMIT 100
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
+
+    params.push(limit, offset);
+
+    // Get total count
+    let countQuery = `SELECT COUNT(DISTINCT b.booking_id) as total FROM bookings b`;
+    if (statusFilter && statusFilter !== "all") {
+      countQuery += ` WHERE b.status = $1`;
+    }
+    
+    const countResult = await pool.query(countQuery, statusFilter && statusFilter !== "all" ? [statusFilter] : []);
+    const total = parseInt(countResult.rows[0]?.total || "0");
 
     const result = await pool.query(query, params);
 
     return NextResponse.json({
       success: true,
       data: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error("Error fetching bookings:", error);

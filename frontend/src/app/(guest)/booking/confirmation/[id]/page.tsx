@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useBooking } from '@/hooks/use-bookings';
 import { useBookingStore } from '@/store/useBookingStore';
 import { Button } from '@/components/ui/button';
@@ -13,16 +14,87 @@ import { formatDate } from '@/utils/date';
 export default function BookingConfirmationPage() {
   const router = useRouter();
   const params = useParams();
+  const { data: session } = useSession();
   const bookingId = parseInt(params.id as string);
   const { clearBooking } = useBookingStore();
   const [showToast, setShowToast] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
 
-  const { data: booking, isLoading, error } = useBooking(bookingId);
+  // Get phone from sessionStorage for non-signed-in users
+  const [primaryGuestPhone, setPrimaryGuestPhone] = useState<string | undefined>();
+  
+  useEffect(() => {
+    if (!session && bookingId) {
+      const phone = sessionStorage.getItem(`booking_${bookingId}_phone`);
+      if (phone) {
+        setPrimaryGuestPhone(phone);
+      }
+    }
+  }, [session, bookingId]);
+  
+  const { data: booking, isLoading, error } = useBooking(bookingId, primaryGuestPhone);
+
+  // Check one-time access for non-signed-in users
+  useEffect(() => {
+    if (!session && bookingId) {
+      const viewedKey = `booking_${bookingId}_viewed`;
+      const hasViewed = sessionStorage.getItem(viewedKey);
+      
+      if (hasViewed === 'true') {
+        // Already viewed, deny access
+        setAccessDenied(true);
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
+      } else {
+        // Mark as viewed
+        sessionStorage.setItem(viewedKey, 'true');
+      }
+    }
+  }, [session, bookingId, router]);
 
   // Clear booking store when confirmation page loads
   useEffect(() => {
     clearBooking();
   }, [clearBooking]);
+
+  if (accessDenied) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <Card className="p-8 text-center">
+            <div className="text-yellow-500 mb-4">
+              <svg
+                className="w-16 h-16 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              This confirmation page can only be viewed once. Please sign in to view your booking details.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Button onClick={() => router.push('/auth/signin')}>
+                Sign In
+              </Button>
+              <Button variant="outline" onClick={() => router.push('/')}>
+                Go Home
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

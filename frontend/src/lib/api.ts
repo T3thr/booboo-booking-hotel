@@ -218,15 +218,14 @@ export const bookingApi = {
             throw new Error(`Last name must be at least 2 characters: "${lastName}"`);
           }
           
-          // Validate phone for primary guest
-          if (g.is_primary && !g.phone) {
-            throw new Error('Phone number is required for primary guest');
-          }
+          // Phone validation: allow empty for primary guest (will be filled from account if signed in)
+          // Backend will handle the phone from account
           
           return {
             first_name: firstName,
             last_name: lastName,
             phone: g.phone || null,
+            email: g.email || null,
             type: g.type || 'Adult',
             is_primary: g.is_primary || false,
           };
@@ -291,6 +290,17 @@ export const bookingApi = {
     
     if (!response.ok) throw new Error(`Get booking failed: ${response.status}`);
     return response.json();
+  },
+  getByIdPublic: async (id: number, phone: string) => {
+    const response = await fetch(`/api/bookings/${id}/public?phone=${encodeURIComponent(phone)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    
+    if (!response.ok) throw new Error(`Get booking failed: ${response.status}`);
+    const result = await response.json();
+    // Unwrap the data if it's wrapped in success/data structure
+    return result.data || result;
   },
 };
 

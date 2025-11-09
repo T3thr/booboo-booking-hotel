@@ -17,6 +17,7 @@ interface Arrival {
   check_in_date: string;
   check_out_date: string;
   num_guests: number;
+  status: string;
   room_number?: string;
   payment_status: string;
   payment_proof_url?: string;
@@ -221,11 +222,24 @@ export default function CheckInPage() {
                             🚪 ห้อง {arrival.room_number} (เช็คอินแล้ว)
                           </p>
                         )}
-                        {/* Payment Status */}
-                        <div className="mt-2">
+                        {/* Status Badges */}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {/* Booking Status */}
+                          {arrival.status === 'Confirmed' && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                              ✓ ยืนยันแล้ว
+                            </span>
+                          )}
+                          {arrival.status === 'CheckedIn' && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                              ✓ เช็คอินแล้ว
+                            </span>
+                          )}
+                          
+                          {/* Payment Status */}
                           {arrival.payment_status === 'approved' ? (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                              ✓ ชำระเงินแล้ว
+                              💰 ชำระเงินแล้ว
                             </span>
                           ) : arrival.payment_status === 'pending' ? (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
@@ -278,6 +292,25 @@ export default function CheckInPage() {
                     <span className="text-muted-foreground">เช็คเอาท์:</span>
                     <span className="font-medium text-foreground">{formatDate(selectedArrival.check_out_date)}</span>
                   </div>
+                </div>
+              </Card>
+
+              {/* Quick Link to Reception */}
+              <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-blue-800 dark:text-blue-200">
+                      💼 ต้องการดูหลักฐานการชำระเงินหรือจัดการ booking?
+                    </span>
+                  </div>
+                  <a
+                    href="/admin/reception"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    ไปที่หน้า Reception →
+                  </a>
                 </div>
               </Card>
 

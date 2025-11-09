@@ -1,0 +1,52 @@
+========================================
+✅ แก้ไข Guest Account Booking - Part 1
+========================================
+
+## สิ่งที่แก้ไขแล้ว:
+
+### 1. Backend ใช้ Account Data เสมอ ✅
+ไฟล์: backend/internal/service/booking_service.go
+
+เปลี่ยนจาก:
+- ใช้ account data ถ้าไม่มีค่า
+
+เป็น:
+- ใช้ account data เสมอสำหรับ signed-in users
+- แทนที่ชื่อจำลอง (Fon, Testuser) ด้วยชื่อจริง
+- เพิ่ม validation สำหรับ non-signed-in users
+
+### 2. Backend ถูก Rebuild แล้ว ✅
+
+========================================
+⚠️ ต้อง RESTART BACKEND!
+========================================
+
+1. Stop backend (Ctrl+C)
+2. Run:
+   cd backend
+   ./hotel-booking-api.exe
+
+========================================
+ทดสอบ:
+========================================
+
+1. Login ด้วย guest account
+2. จองห้อง
+3. Complete booking
+4. ไปที่ Admin/Reception
+5. ตรวจสอบ:
+   ✅ ชื่อควรเป็นชื่อจริงจาก account
+   ✅ Email ควรเป็น email จาก account
+   ✅ Phone ควรเป็น phone จาก account
+
+========================================
+ยังต้องทำ (Part 2):
+========================================
+
+1. สร้าง Arrivals API ใน backend
+2. แสดงสถานะ hold/confirmed ใน checkin
+3. แสดงสถานะชำระเงิน
+
+ดูรายละเอียดใน: TODO_GUEST_ACCOUNT_BOOKING_FIX.md
+
+========================================

@@ -70,6 +70,7 @@ func (s *AuthService) Register(ctx context.Context, req *models.RegisterRequest)
 		Email:       guest.Email,
 		FirstName:   guest.FirstName,
 		LastName:    guest.LastName,
+		Phone:       guest.Phone,
 		Role:        "guest",
 		RoleCode:    "GUEST",
 		UserType:    "guest",
@@ -125,11 +126,18 @@ func (s *AuthService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
 
+	// Dereference phone pointer, use empty string if nil
+	phone := ""
+	if user.Phone != nil {
+		phone = *user.Phone
+	}
+
 	return &models.LoginResponse{
 		ID:          user.UserID,
 		Email:       user.Email,
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
+		Phone:       phone,
 		Role:        user.UserType,
 		RoleCode:    user.RoleCode,
 		UserType:    user.UserType,

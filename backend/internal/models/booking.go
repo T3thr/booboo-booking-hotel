@@ -33,6 +33,7 @@ type BookingGuest struct {
 	FirstName       string  `json:"first_name" db:"first_name"`
 	LastName        string  `json:"last_name" db:"last_name"`
 	Phone           *string `json:"phone,omitempty" db:"phone"`
+	Email           *string `json:"email,omitempty" db:"email"`
 	Type            string  `json:"type" db:"type"`
 	IsPrimary       bool    `json:"is_primary" db:"is_primary"`
 }
@@ -104,6 +105,7 @@ type CreateGuestRequest struct {
 	FirstName string  `json:"first_name" binding:"required,min=2,max=100"`
 	LastName  string  `json:"last_name" binding:"required,min=2,max=100"`
 	Phone     *string `json:"phone,omitempty"`
+	Email     *string `json:"email,omitempty"`
 	Type      string  `json:"type" binding:"required,oneof=Adult Child"`
 	IsPrimary bool    `json:"is_primary"`
 }
@@ -242,11 +244,15 @@ type ArrivalInfo struct {
 	BookingDetailID int       `json:"booking_detail_id" db:"booking_detail_id"`
 	GuestName       string    `json:"guest_name" db:"guest_name"`
 	RoomTypeName    string    `json:"room_type_name" db:"room_type_name"`
+	RoomTypeID      int       `json:"room_type_id" db:"room_type_id"`
 	CheckInDate     time.Time `json:"check_in_date" db:"check_in_date"`
 	CheckOutDate    time.Time `json:"check_out_date" db:"check_out_date"`
 	NumGuests       int       `json:"num_guests" db:"num_guests"`
 	Status          string    `json:"status" db:"status"`
 	RoomNumber      *string   `json:"room_number,omitempty" db:"room_number"`
+	PaymentStatus   string    `json:"payment_status" db:"payment_status"`
+	PaymentProofURL *string   `json:"payment_proof_url,omitempty" db:"payment_proof_url"`
+	PaymentProofID  *int      `json:"payment_proof_id,omitempty" db:"payment_proof_id"`
 }
 
 // DepartureInfo represents information about a departing guest

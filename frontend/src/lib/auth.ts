@@ -56,6 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               name: `${response.data.first_name} ${response.data.last_name}`,
               role: response.data.role_code,
               userType: response.data.user_type,
+              phone: response.data.phone,
               accessToken: response.data.access_token || response.data.accessToken
             };
             console.log('[Auth] Returning user:', user);
@@ -78,17 +79,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.role = user.role;
         token.userType = user.userType;
+        token.phone = user.phone;
         token.accessToken = user.accessToken;
-        console.log('[JWT Callback] Token after update:', { id: token.id, role: token.role, userType: token.userType });
+        console.log('[JWT Callback] Token after update:', { id: token.id, role: token.role, userType: token.userType, phone: token.phone });
       }
       return token;
     },
     async session({ session, token }) {
-      console.log('[Session Callback] Token:', { id: token.id, role: token.role, userType: token.userType });
+      console.log('[Session Callback] Token:', { id: token.id, role: token.role, userType: token.userType, phone: token.phone });
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.userType = token.userType as string;
+        session.user.phone = token.phone as string;
       }
       session.accessToken = token.accessToken as string;
       console.log('[Session Callback] Session after update:', { user: session.user });

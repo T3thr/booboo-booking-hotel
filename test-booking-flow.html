@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Booking Flow</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Test Booking Flow</h1>
+    
+    <h2>1. Check localStorage</h2>
+    <button onclick="checkStorage()">Check Storage</button>
+    <div id="storage-result"></div>
+    
+    <h2>2. Clear Storage</h2>
+    <button onclick="clearStorage()">Clear All Storage</button>
+    <div id="clear-result"></div>
+    
+    <h2>3. Test Hold Creation</h2>
+    <button onclick="testHold()">Test Create Hold</button>
+    <div id="hold-result"></div>
+    
+    <h2>4. Navigate to Booking</h2>
+    <button onclick="goToBooking()">Go to Guest Info</button>
+    
+    <script>
+        function checkStorage() {
+            const result = document.getElementById('storage-result');
+            const hold = localStorage.getItem('booking_hold');
+            const session = sessionStorage.getItem('booking_session_id');
+            
+            if (hold) {
+                try {
+                    const parsed = JSON.parse(hold);
+                    const expiry = new Date(parsed.holdExpiry);
+                    const isValid = expiry > new Date();
+                    
+                    result.innerHTML = `
+                        <div class="${isValid ? 'success' : 'error'}">
+                            <p><strong>Hold found:</strong></p>
+                            <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                            <p>Expiry: ${expiry.toLocaleString()}</p>
+                            <p>Valid: ${isValid ? 'YES ✓' : 'NO (expired) ✗'}</p>
+                        </div>
+                    `;
+                } catch (e) {
+                    result.innerHTML = `<div class="error">Invalid hold data: ${e.message}</div>`;
+                }
+            } else {
+                result.innerHTML = '<div class="error">No hold in localStorage</div>';
+            }
+            
+            if (session) {
+                result.innerHTML += `<p>Session ID: ${session}</p>`;
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('booking_hold');
+            localStorage.removeItem('booking_guest_draft');
+            sessionStorage.removeItem('booking_session_id');
+            
+            document.getElementById('clear-result').innerHTML = 
+                '<div class="success">✓ All storage cleared</div>';
+        }
+        
+        async function testHold() {
+            const result = document.getElementById('hold-result');
+            result.innerHTML = '<p>Creating hold...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/bookings/hold', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: `test_${Date.now()}`,
+                        room_type_id: 1,
+                        check_in: '2025-11-09',
+                        check_out: '2025-11-10'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `
+                        <div class="success">
+                            <p><strong>✓ Hold created successfully!</strong></p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <p><strong>✗ Failed to create hold</strong></p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function goToBooking() {
+            // Set up booking data
+            const searchParams = {
+                check_in_date: '2025-11-09',
+                check_out_date: '2025-11-10',
+                adults: 2,
+                children: 0
+            };
+            
+            // Store in sessionStorage (simulating room selection)
+            sessionStorage.setItem('booking_search_params', JSON.stringify(searchParams));
+            
+            // Navigate
+            window.location.href = 'http://localhost:3000/booking/guest-info';
+        }
+        
+        // Auto-check on load
+        window.onload = checkStorage;
+    </script>
+</body>
+</html>

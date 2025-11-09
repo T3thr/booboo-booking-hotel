@@ -16,7 +16,7 @@ if exist server.exe del /F /Q server.exe
 
 echo.
 echo Step 3: Build new server...
-go build -o bin\server.exe cmd\server\main.go
+go build -o bin\server.exe .\cmd\server
 if %ERRORLEVEL% NEQ 0 (
     echo ERROR: Build failed!
     pause

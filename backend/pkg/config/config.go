@@ -52,12 +52,26 @@ func Load() (*Config, error) {
 	// Load .env file if it exists (for development)
 	_ = godotenv.Load()
 
+	// Parse CORS origins from ALLOWED_ORIGINS or FRONTEND_URL
+	allowedOrigins := []string{}
+	if originsStr := getEnv("ALLOWED_ORIGINS", ""); originsStr != "" {
+		// Split by comma and trim spaces
+		for _, origin := range splitAndTrim(originsStr, ",") {
+			if origin != "" {
+				allowedOrigins = append(allowedOrigins, origin)
+			}
+		}
+	} else {
+		// Fallback to FRONTEND_URL
+		allowedOrigins = []string{getEnv("FRONTEND_URL", "http://localhost:3000")}
+	}
+
 	config := &Config{
 		Server: ServerConfig{
 			Port:    getEnv("PORT", "8080"),
 			GinMode: getEnv("GIN_MODE", "debug"),
 			CORS: CORSConfig{
-				AllowOrigins: []string{getEnv("FRONTEND_URL", "http://localhost:3000")},
+				AllowOrigins: allowedOrigins,
 			},
 		},
 		Database: DatabaseConfig{
@@ -109,4 +123,49 @@ func getEnv(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+// splitAndTrim splits a string by delimiter and trims whitespace from each part
+func splitAndTrim(s, delimiter string) []string {
+	parts := []string{}
+	for _, part := range splitString(s, delimiter) {
+		trimmed := trimSpace(part)
+		if trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+	return parts
+}
+
+// splitString splits a string by delimiter
+func splitString(s, delimiter string) []string {
+	if s == "" {
+		return []string{}
+	}
+	result := []string{}
+	current := ""
+	for i := 0; i < len(s); i++ {
+		if i+len(delimiter) <= len(s) && s[i:i+len(delimiter)] == delimiter {
+			result = append(result, current)
+			current = ""
+			i += len(delimiter) - 1
+		} else {
+			current += string(s[i])
+		}
+	}
+	result = append(result, current)
+	return result
+}
+
+// trimSpace removes leading and trailing whitespace
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+	return s[start:end]
 }

@@ -48,6 +48,7 @@ interface BookingGuest {
   first_name: string;
   last_name: string;
   phone?: string;
+  email?: string;
   type: string;
   is_primary: boolean;
 }
@@ -77,30 +78,43 @@ export default function BookingManagementTab() {
   const [activeView, setActiveView] = useState<"bookings" | "payments">("bookings");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [bookingsPage, setBookingsPage] = useState(1);
+  const [paymentsPage, setPaymentsPage] = useState(1);
   const queryClient = useQueryClient();
 
+  // Reset page when filter changes
+  const handleStatusFilterChange = (newStatus: string) => {
+    setStatusFilter(newStatus);
+    setBookingsPage(1);
+  };
+
   // Fetch bookings
-  const { data: bookingsData, isLoading: bookingsLoading, refetch: refetchBookings } = useQuery({
-    queryKey: ["admin-bookings", statusFilter],
+  const { data: bookingsResponse, isLoading: bookingsLoading, refetch: refetchBookings } = useQuery({
+    queryKey: ["admin-bookings", statusFilter, bookingsPage],
     queryFn: async () => {
-      const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const response = await fetch(`/api/admin/bookings${params}`);
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("page", bookingsPage.toString());
+      params.set("limit", "20");
+      const response = await fetch(`/api/admin/bookings?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch bookings");
-      const data = await response.json();
-      return data.data || [];
+      return await response.json();
     },
     refetchInterval: 30000,
     enabled: activeView === "bookings",
   });
 
   // Fetch payment proofs
-  const { data: proofs, isLoading: proofsLoading, refetch: refetchProofs } = useQuery({
-    queryKey: ["payment-proofs", "pending"],
+  const { data: proofsResponse, isLoading: proofsLoading, refetch: refetchProofs } = useQuery({
+    queryKey: ["payment-proofs", "pending", paymentsPage],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/payment-proofs?status=pending`);
+      const params = new URLSearchParams();
+      params.set("status", "pending");
+      params.set("page", paymentsPage.toString());
+      params.set("limit", "20");
+      const response = await fetch(`/api/admin/payment-proofs?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch payment proofs");
-      const data = await response.json();
-      return data.data as PaymentProof[];
+      return await response.json();
     },
     refetchInterval: 30000,
     enabled: activeView === "payments",
@@ -113,13 +127,22 @@ export default function BookingManagementTab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error("Failed to approve payment");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to approve payment");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payment-proofs"] });
       queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      refetchProofs();
+      refetchBookings();
       setSelectedProof(null);
+      alert("อนุมัติการชำระเงินสำเร็จ!");
+    },
+    onError: (error: Error) => {
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
     },
   });
 
@@ -131,20 +154,29 @@ export default function BookingManagementTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rejection_reason: reason }),
       });
-      if (!response.ok) throw new Error("Failed to reject payment");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to reject payment");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["payment-proofs"] });
       queryClient.invalidateQueries({ queryKey: ["admin-bookings"] });
+      refetchProofs();
+      refetchBookings();
       setSelectedProof(null);
       setRejectionReason("");
+      alert("ปฏิเสธการชำระเงินสำเร็จ!");
+    },
+    onError: (error: Error) => {
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
     },
   });
 
   const handleApprove = (proof: PaymentProof) => {
     if (confirm(`ยืนยันการอนุมัติการชำระเงินสำหรับการจอง #${proof.booking_id}?`)) {
-      approveMutation.mutate(proof.payment_proof_id);
+      approveMutation.mutate(proof.booking_id);
     }
   };
 
@@ -155,7 +187,7 @@ export default function BookingManagementTab() {
     }
     if (confirm(`ยืนยันการปฏิเสธการชำระเงินสำหรับการจอง #${proof.booking_id}?`)) {
       rejectMutation.mutate({
-        paymentProofId: proof.payment_proof_id,
+        paymentProofId: proof.booking_id,
         reason: rejectionReason,
       });
     }
@@ -178,7 +210,9 @@ export default function BookingManagementTab() {
     );
   };
 
-  const bookings = Array.isArray(bookingsData) ? bookingsData : [];
+  const bookings = Array.isArray(bookingsResponse?.data) ? bookingsResponse.data : [];
+  const bookingsPagination = bookingsResponse?.pagination;
+  
   const filteredBookings = bookings.filter((booking: Booking) => {
     const matchesSearch = searchTerm === "" || 
       booking.booking_id.toString().includes(searchTerm) ||
@@ -188,7 +222,9 @@ export default function BookingManagementTab() {
     return matchesSearch;
   });
 
-  const pendingPaymentsCount = proofs?.length || 0;
+  const proofs = Array.isArray(proofsResponse?.data) ? proofsResponse.data : [];
+  const proofsPagination = proofsResponse?.pagination;
+  const pendingPaymentsCount = proofsPagination?.total || 0;
 
   if (bookingsLoading || proofsLoading) {
     return (
@@ -265,28 +301,28 @@ export default function BookingManagementTab() {
             </div>
             <div className="flex gap-2 flex-wrap">
               <Button
-                onClick={() => setStatusFilter("all")}
+                onClick={() => handleStatusFilterChange("all")}
                 variant={statusFilter === "all" ? "default" : "outline"}
                 size="sm"
               >
                 ทั้งหมด
               </Button>
               <Button
-                onClick={() => setStatusFilter("PendingPayment")}
+                onClick={() => handleStatusFilterChange("PendingPayment")}
                 variant={statusFilter === "PendingPayment" ? "default" : "outline"}
                 size="sm"
               >
                 รอชำระเงิน
               </Button>
               <Button
-                onClick={() => setStatusFilter("Confirmed")}
+                onClick={() => handleStatusFilterChange("Confirmed")}
                 variant={statusFilter === "Confirmed" ? "default" : "outline"}
                 size="sm"
               >
                 ยืนยันแล้ว
               </Button>
               <Button
-                onClick={() => setStatusFilter("CheckedIn")}
+                onClick={() => handleStatusFilterChange("CheckedIn")}
                 variant={statusFilter === "CheckedIn" ? "default" : "outline"}
                 size="sm"
               >
@@ -296,6 +332,10 @@ export default function BookingManagementTab() {
           </div>
 
           {/* Bookings List */}
+          <div className="text-sm text-muted-foreground mb-2">
+            แสดง {filteredBookings.length} จาก {bookingsPagination?.total || 0} รายการ
+          </div>
+          
           {filteredBookings.length === 0 ? (
             <Card className="p-12 text-center">
               <svg
@@ -387,12 +427,71 @@ export default function BookingManagementTab() {
               ))}
             </div>
           )}
+
+          {/* Pagination for Bookings */}
+          {bookingsPagination && bookingsPagination.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                onClick={() => setBookingsPage(p => Math.max(1, p - 1))}
+                disabled={bookingsPage === 1}
+                variant="outline"
+                size="sm"
+              >
+                ← ก่อนหน้า
+              </Button>
+              <span className="text-sm text-muted-foreground px-4">
+                หน้า {bookingsPage} จาก {bookingsPagination.totalPages}
+              </span>
+              <Button
+                onClick={() => setBookingsPage(p => Math.min(bookingsPagination.totalPages, p + 1))}
+                disabled={bookingsPage >= bookingsPagination.totalPages}
+                variant="outline"
+                size="sm"
+              >
+                ถัดไป →
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Payment Proofs View */}
       {activeView === "payments" && (
         <div className="space-y-4">
+          {/* Pagination at Top */}
+          {proofsPagination && proofsPagination.total_pages > 1 && (
+            <div className="flex items-center justify-between bg-muted/30 rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">
+                แสดง {proofs.length} จาก {proofsPagination?.total || 0} รายการ
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
+                  disabled={paymentsPage === 1}
+                  variant="outline"
+                  size="sm"
+                >
+                  ← ก่อนหน้า
+                </Button>
+                <span className="text-sm text-muted-foreground px-4">
+                  หน้า {paymentsPage} จาก {proofsPagination.total_pages}
+                </span>
+                <Button
+                  onClick={() => setPaymentsPage(p => Math.min(proofsPagination.total_pages, p + 1))}
+                  disabled={paymentsPage >= proofsPagination.total_pages}
+                  variant="outline"
+                  size="sm"
+                >
+                  ถัดไป →
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          <div className="text-sm text-muted-foreground mb-2">
+            แสดง {proofs.length} จาก {proofsPagination?.total || 0} รายการ
+          </div>
+          
           {!proofs || proofs.length === 0 ? (
             <Card className="p-12 text-center">
               <svg
@@ -413,8 +512,8 @@ export default function BookingManagementTab() {
             </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {proofs.map((proof) => (
-                <Card key={proof.payment_proof_id} className="overflow-hidden">
+              {proofs.map((proof: PaymentProof) => (
+                <Card key={proof.booking_id} className="overflow-hidden">
                   {/* Header */}
                   <div className="bg-muted/50 px-6 py-4 border-b border-border">
                     <div className="flex items-center justify-between">
@@ -471,19 +570,30 @@ export default function BookingManagementTab() {
                     </div>
 
                     {/* Payment Proof Image */}
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-2">หลักฐานการโอนเงิน</p>
-                      <button
-                        onClick={() => setSelectedProof(proof)}
-                        className="w-full aspect-video bg-muted rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
-                      >
-                        <img
-                          src={proof.proof_url}
-                          alt="Payment proof"
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    </div>
+                    {proof.proof_url && proof.proof_url !== '' ? (
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">หลักฐานการโอนเงิน</p>
+                        <button
+                          onClick={() => setSelectedProof(proof)}
+                          className="w-full aspect-video bg-muted rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
+                        >
+                          <img
+                            src={proof.proof_url}
+                            alt="Payment proof"
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center">
+                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                          ⚠️ ยังไม่มีหลักฐานการโอนเงิน
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          รอลูกค้าอัปโหลดหลักฐาน
+                        </p>
+                      </div>
+                    )}
 
                     {/* Timestamp */}
                     <p className="text-xs text-muted-foreground">
@@ -513,6 +623,31 @@ export default function BookingManagementTab() {
                   </div>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {/* Pagination for Payment Proofs */}
+          {proofsPagination && proofsPagination.total_pages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              <Button
+                onClick={() => setPaymentsPage(p => Math.max(1, p - 1))}
+                disabled={paymentsPage === 1}
+                variant="outline"
+                size="sm"
+              >
+                ← ก่อนหน้า
+              </Button>
+              <span className="text-sm text-muted-foreground px-4">
+                หน้า {paymentsPage} จาก {proofsPagination.total_pages}
+              </span>
+              <Button
+                onClick={() => setPaymentsPage(p => Math.min(proofsPagination.total_pages, p + 1))}
+                disabled={paymentsPage >= proofsPagination.total_pages}
+                variant="outline"
+                size="sm"
+              >
+                ถัดไป →
+              </Button>
             </div>
           )}
         </div>

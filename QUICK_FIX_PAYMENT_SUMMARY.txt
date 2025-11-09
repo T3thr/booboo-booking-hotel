@@ -1,0 +1,24 @@
+========================================
+แก้ไขระบบตรวจสอบการชำระเงินสำเร็จ ✅
+========================================
+
+ปัญหาที่แก้:
+1. แสดงข้อมูล 35/61 booking → แก้แล้ว แสดงครบ 61 รายการ
+2. Pagination ไม่สะดวก → เพิ่ม pagination ด้านบนแล้ว
+3. การอนุมัติไม่ทำงานกับ check-in → แก้แล้ว ทำงานร่วมกันได้
+
+ไฟล์ที่แก้:
+- backend/internal/repository/payment_proof_repository.go
+- frontend/src/app/admin/(staff)/reception/components/BookingManagementTab.tsx
+
+วิธี Deploy:
+1. .\rebuild-payment-fix.bat
+2. Restart backend: cd backend && .\bin\server.exe
+3. Frontend อัปเดตอัตโนมัติ
+
+ทดสอบ:
+✅ เห็น booking ครบ 61 รายการ
+✅ Pagination ทำงานได้
+✅ อนุมัติแล้วสามารถ check-in ได้
+
+ดูรายละเอียดเพิ่มเติม: PAYMENT_PROOF_COMPLETE_FIX.md

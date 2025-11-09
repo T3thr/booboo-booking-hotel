@@ -10,10 +10,17 @@ export function useBookings(params?: any) {
   });
 }
 
-export function useBooking(id: number) {
+export function useBooking(id: number, phone?: string) {
   return useQuery({
-    queryKey: ['bookings', id],
-    queryFn: () => bookingApi.getById(id),
+    queryKey: ['bookings', id, phone],
+    queryFn: () => {
+      // If phone is provided, use public API (for non-signed-in guests)
+      if (phone) {
+        return bookingApi.getByIdPublic(id, phone);
+      }
+      // Otherwise use authenticated API
+      return bookingApi.getById(id);
+    },
     enabled: !!id,
   });
 }
