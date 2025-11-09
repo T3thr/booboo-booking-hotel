@@ -1,64 +1,76 @@
 ========================================
-🚨 แก้ไข Backend ตาย - เริ่มเลย!
+แก้ไข Production ทันที! (2 ปัญหา)
 ========================================
 
 ปัญหา:
-❌ Backend นิ่งสนิท ไม่มี logs
-❌ Admin/checkin ไม่โหลด
-❌ Approve booking Error 500
+1. ❌ Admin/Checkin ไม่แสดงข้อมูล (ECONNREFUSED localhost)
+2. ❌ Approve Booking Error 500 (constraint violation)
 
 สาเหตุ:
-BACKEND_URL ไม่ได้ตั้งค่าใน Vercel!
+1. API routes ใช้ NEXT_PUBLIC_BACKEND_URL ที่ไม่มี
+2. confirm_booking ไม่ตรวจสอบ capacity
 
 ========================================
-วิธีแก้ (เลือก 1 ใน 2)
+แก้ไขเลย! (5 นาที)
 ========================================
 
-วิธีที่ 1: ใช้ Script (แนะนำ)
-> FIX_BACKEND_NOT_CALLED.bat
+> FIX_PRODUCTION_COMPLETE.bat
 
-วิธีที่ 2: Manual (5 นาที)
-1. เข้า https://vercel.com/dashboard
-2. เลือก project: booboo-booking
-3. Settings → Environment Variables
-4. เพิ่ม:
-   BACKEND_URL=https://booboo-booking.onrender.com
-   NEXT_PUBLIC_API_URL=https://booboo-booking.onrender.com
-5. Scope: Production ✓
-6. Save → Redeploy
+หรือ Manual:
+
+1. Run Migration:
+   psql -h dpg-ct2rvf08fa8c73a0rvog-a.oregon-postgres.render.com -U booboo_booking_user -d booboo_booking -f database/migrations/006_fix_confirm_booking_inventory_check.sql
+
+2. Deploy:
+   git add .
+   git commit -m "fix: production issues"
+   git push origin main
+
+3. รอ 1-2 นาที
 
 ========================================
 ทดสอบ
 ========================================
 
-1. https://booboo-booking.vercel.app/api/test-env
-   ต้องเห็น: "BACKEND_URL": "https://booboo-booking.onrender.com"
-
-2. https://booboo-booking.vercel.app/admin/reception
-   Login: manager@hotel.com
-   คลิก "อนุมัติ" → ต้องทำงานได้
-
-3. https://booboo-booking.vercel.app/admin/checkin
+1. Admin/Checkin:
+   https://booboo-booking.vercel.app/admin/checkin
    Login: receptionist@hotel.com
-   ต้องแสดงข้อมูลแขก
+   ✅ ต้องเห็นรายการแขก
+
+2. Approve Booking:
+   https://booboo-booking.vercel.app/admin/reception
+   Login: manager@hotel.com
+   ✅ คลิก "อนุมัติ" ต้องสำเร็จ
+
+3. Render Logs:
+   https://dashboard.render.com
+   ✅ ต้องเห็น requests
 
 ========================================
-เอกสารเพิ่มเติม
+ผลลัพธ์
 ========================================
 
-- BACKEND_DEAD_SOLUTION.txt (สรุปสั้น)
-- FINAL_BACKEND_DEAD_FIX.md (สรุปทั้งหมด)
-- BACKEND_NOT_CALLED_FIX.md (รายละเอียดเต็ม)
-- VERCEL_ENV_FIX.md (คู่มือ Vercel)
+ก่อน:
+- Admin/Checkin: ❌ ไม่แสดงข้อมูล
+- Approve: ❌ Error 500
+- Render: ❌ ไม่มี logs
+
+หลัง:
+- Admin/Checkin: ✅ แสดงข้อมูล
+- Approve: ✅ ทำงานได้
+- Render: ✅ มี logs
+
+========================================
+เอกสาร
+========================================
+
+- PRODUCTION_FIX_COMPLETE.md (รายละเอียด)
+- FIX_PRODUCTION_COMPLETE.bat (script)
 
 ========================================
 เริ่มเลย!
 ========================================
 
-> FIX_BACKEND_NOT_CALLED.bat
+> FIX_PRODUCTION_COMPLETE.bat
 
-หรือ
-
-เข้า Vercel Dashboard ตั้งค่า BACKEND_URL
-
-🚀 ใช้เวลา 5 นาที แก้ไขเสร็จ!
+🚀
