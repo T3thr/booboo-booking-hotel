@@ -18,7 +18,6 @@ export default function BookingConfirmationPage() {
   const bookingId = parseInt(params.id as string);
   const { clearBooking } = useBookingStore();
   const [showToast, setShowToast] = useState(true);
-  const [accessDenied, setAccessDenied] = useState(false);
 
   // Get phone from sessionStorage for non-signed-in users
   const [primaryGuestPhone, setPrimaryGuestPhone] = useState<string | undefined>();
@@ -34,67 +33,10 @@ export default function BookingConfirmationPage() {
   
   const { data: booking, isLoading, error } = useBooking(bookingId, primaryGuestPhone);
 
-  // Check one-time access for non-signed-in users
-  useEffect(() => {
-    if (!session && bookingId) {
-      const viewedKey = `booking_${bookingId}_viewed`;
-      const hasViewed = sessionStorage.getItem(viewedKey);
-      
-      if (hasViewed === 'true') {
-        // Already viewed, deny access
-        setAccessDenied(true);
-        setTimeout(() => {
-          router.push('/');
-        }, 2000);
-      } else {
-        // Mark as viewed
-        sessionStorage.setItem(viewedKey, 'true');
-      }
-    }
-  }, [session, bookingId, router]);
-
   // Clear booking store when confirmation page loads
   useEffect(() => {
     clearBooking();
   }, [clearBooking]);
-
-  if (accessDenied) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <Card className="p-8 text-center">
-            <div className="text-yellow-500 mb-4">
-              <svg
-                className="w-16 h-16 mx-auto"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              This confirmation page can only be viewed once. Please sign in to view your booking details.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => router.push('/auth/signin')}>
-                Sign In
-              </Button>
-              <Button variant="outline" onClick={() => router.push('/')}>
-                Go Home
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
@@ -128,11 +70,23 @@ export default function BookingConfirmationPage() {
             </div>
             <h1 className="text-2xl font-bold mb-2">Booking Not Found</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              We couldn't find the booking you're looking for.
+              {!session && !primaryGuestPhone 
+                ? 'Unable to verify booking. Please sign in to view your booking details.'
+                : 'We couldn\'t find the booking you\'re looking for.'}
             </p>
-            <Button onClick={() => router.push('/rooms/search')}>
-              Search for Rooms
-            </Button>
+            <div className="flex gap-4 justify-center">
+              {!session && (
+                <Button onClick={() => router.push('/auth/signin')}>
+                  Sign In
+                </Button>
+              )}
+              <Button 
+                variant={!session ? "outline" : "default"}
+                onClick={() => router.push('/rooms/search')}
+              >
+                Search for Rooms
+              </Button>
+            </div>
           </Card>
         </div>
       </div>
@@ -356,23 +310,80 @@ export default function BookingConfirmationPage() {
           </Card>
         )}
 
+        {/* Guest Notice for Non-Authenticated Users */}
+        {!session && (
+          <Card className="p-6 mb-6 bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800">
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-yellow-600 dark:text-yellow-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Guest Booking
+            </h2>
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+              You can view this booking anytime by visiting this page or searching with your phone number.
+            </p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Want to manage your bookings easily? 
+              <Button
+                variant="link"
+                className="p-0 h-auto ml-1 text-blue-600 dark:text-blue-400"
+                onClick={() => router.push('/auth/register')}
+              >
+                Create an account
+              </Button>
+            </p>
+          </Card>
+        )}
+
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button
-            onClick={() => router.push('/bookings')}
-            className="flex-1"
-            size="lg"
-          >
-            View My Bookings
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/rooms/search')}
-            className="flex-1"
-            size="lg"
-          >
-            Book Another Room
-          </Button>
+          {session ? (
+            <>
+              <Button
+                onClick={() => router.push('/bookings')}
+                className="flex-1"
+                size="lg"
+              >
+                View My Bookings
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/rooms/search')}
+                className="flex-1"
+                size="lg"
+              >
+                Book Another Room
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={() => router.push('/rooms/search')}
+                className="flex-1"
+                size="lg"
+              >
+                Book Another Room
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/bookings')}
+                className="flex-1"
+                size="lg"
+              >
+                Search My Bookings
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
