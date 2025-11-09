@@ -1,0 +1,104 @@
+========================================
+แก้ไขปัญหาข้อมูล Guest และ Payment Status
+========================================
+
+ปัญหา:
+1. admin/checkin แสดง "ยังไม่ชำระ" แต่ admin/reception แสดง "ยืนยันแล้ว"
+2. แสดงข้อมูล mock "Fon Testuser" แทนข้อมูลจาก guest account
+
+การแก้ไข:
+✅ แก้ payment status logic ให้ตรวจสอบ booking status
+✅ แก้ให้ใช้ข้อมูลจาก guest account สำหรับ signed-in users
+
+========================================
+วิธีรัน (เลือก 1 ใน 2)
+========================================
+
+วิธีที่ 1: ใช้ Script (แนะนำ)
+------------------------------
+1. Double-click: test-guest-data-fix.bat
+2. รอ backend rebuild และ restart
+3. ทดสอบตามขั้นตอนด้านล่าง
+
+วิธีที่ 2: Manual
+-----------------
+1. เปิด Command Prompt
+2. cd backend
+3. go build -o hotel-booking-server.exe ./cmd/server
+4. taskkill /F /IM hotel-booking-server.exe
+5. start hotel-booking-server.exe
+
+========================================
+แก้ไข Booking เก่า (Optional)
+========================================
+
+ถ้าต้องการแก้ไข booking เก่าที่มีข้อมูล mock:
+
+1. cd database\migrations
+2. run_fix_mock_guest_data.bat
+
+========================================
+การทดสอบ
+========================================
+
+Test 1: สร้าง Booking ใหม่
+---------------------------
+1. Sign in: john.doe@example.com / password123
+2. ค้นหาห้องและสร้าง booking
+3. Complete booking
+4. ตรวจสอบ admin/reception → ต้องแสดงชื่อ/อีเมลจาก account
+5. ตรวจสอบ admin/checkin → ต้องแสดง "approved"
+
+Test 2: ตรวจสอบความถูกต้อง
+---------------------------
+1. admin/reception แท็บ "จัดการการจอง"
+   ✅ ชื่อ: John Doe (ไม่ใช่ Fon Testuser)
+   ✅ อีเมล: john.doe@example.com
+   ✅ สถานะ: ยืนยันแล้ว
+
+2. admin/checkin
+   ✅ ชื่อ: John Doe
+   ✅ สถานะการชำระ: approved (ไม่ใช่ ยังไม่ชำระ)
+
+========================================
+ผลลัพธ์ที่คาดหวัง
+========================================
+
+Payment Status:
+- admin/reception: ยืนยันแล้ว ✅
+- admin/checkin: approved ✅
+- ตรงกันทั้ง 2 หน้า ✅
+
+Guest Data:
+- ชื่อ: John Doe ✅ (ไม่ใช่ Fon Testuser)
+- อีเมล: john.doe@example.com ✅
+- เบอร์: 0812345678 ✅
+
+========================================
+ไฟล์ที่แก้ไข
+========================================
+
+1. backend/internal/repository/booking_repository.go
+   - แก้ GetArrivals query เพิ่ม payment status logic
+
+2. backend/internal/service/booking_service.go
+   - แก้ CreateBooking ให้ใช้ guest account data
+
+3. database/migrations/fix_mock_guest_data.sql
+   - SQL script แก้ไข booking เก่า
+
+========================================
+เอกสารเพิ่มเติม
+========================================
+
+- COMPLETE_FIX_GUIDE.md - คู่มือแบบละเอียด
+- GUEST_DATA_FIX_SUMMARY.md - สรุปการแก้ไข
+- test-guest-data-fix.bat - Script rebuild backend
+
+========================================
+หมายเหตุ
+========================================
+
+- Booking ใหม่จะใช้ข้อมูลจาก guest account อัตโนมัติ
+- Booking เก่าต้องรัน fix script ถ้าต้องการแก้ไข
+- Non-signed-in users จะใช้ข้อมูลจากฟอร์มตามปกติ

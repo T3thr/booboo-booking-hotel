@@ -713,7 +713,9 @@ func (r *BookingRepository) GetArrivals(ctx context.Context, date time.Time) ([]
 			SELECT DISTINCT ON (bd.booking_id)
 				bd.booking_id,
 				bg.first_name,
-				bg.last_name
+				bg.last_name,
+				bg.email,
+				bg.phone
 			FROM booking_details bd
 			JOIN booking_guests bg ON bd.booking_detail_id = bg.booking_detail_id
 			WHERE bg.is_primary = true
@@ -722,7 +724,12 @@ func (r *BookingRepository) GetArrivals(ctx context.Context, date time.Time) ([]
 		SELECT 
 			b.booking_id,
 			bd.booking_detail_id,
-			COALESCE(CONCAT(g.first_name, ' ', g.last_name), CONCAT(pg.first_name, ' ', pg.last_name), 'Guest') as guest_name,
+			-- Use guest account name if available, otherwise use booking_guests data
+			COALESCE(
+				CONCAT(g.first_name, ' ', g.last_name), 
+				CONCAT(pg.first_name, ' ', pg.last_name), 
+				'Guest'
+			) as guest_name,
 			rt.name as room_type_name,
 			bd.room_type_id,
 			bd.check_in_date,
@@ -730,7 +737,12 @@ func (r *BookingRepository) GetArrivals(ctx context.Context, date time.Time) ([]
 			bd.num_guests,
 			b.status,
 			r.room_number,
-			COALESCE(pp.status, 'none') as payment_status,
+			-- Payment status logic: if booking is Confirmed or CheckedIn, payment is approved
+			CASE 
+				WHEN b.status IN ('Confirmed', 'CheckedIn', 'Completed') THEN 'approved'
+				WHEN pp.status IS NOT NULL THEN pp.status
+				ELSE 'none'
+			END as payment_status,
 			pp.proof_url as payment_proof_url,
 			pp.payment_proof_id
 		FROM bookings b

@@ -1,0 +1,267 @@
+========================================
+Guest Data & Payment Status Fix
+Visual Diagram
+========================================
+
+PROBLEM 1: Payment Status Mismatch
+===================================
+
+BEFORE FIX:
+-----------
+┌─────────────────────────────────────┐
+│     admin/reception                 │
+│  ┌───────────────────────────────┐  │
+│  │ Booking #123                  │  │
+│  │ Status: ยืนยันแล้ว ✓          │  │
+│  │ Guest: Fon Testuser           │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+                 │
+                 │ ❌ ไม่ตรงกัน
+                 ▼
+┌─────────────────────────────────────┐
+│     admin/checkin                   │
+│  ┌───────────────────────────────┐  │
+│  │ Booking #123                  │  │
+│  │ Payment: ยังไม่ชำระ ✗         │  │
+│  │ Guest: Fon Testuser           │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+
+AFTER FIX:
+----------
+┌─────────────────────────────────────┐
+│     admin/reception                 │
+│  ┌───────────────────────────────┐  │
+│  │ Booking #123                  │  │
+│  │ Status: ยืนยันแล้ว ✓          │  │
+│  │ Guest: John Doe               │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+                 │
+                 │ ✅ ตรงกัน
+                 ▼
+┌─────────────────────────────────────┐
+│     admin/checkin                   │
+│  ┌───────────────────────────────┐  │
+│  │ Booking #123                  │  │
+│  │ Payment: approved ✓           │  │
+│  │ Guest: John Doe               │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+
+
+PROBLEM 2: Mock Guest Data
+===========================
+
+BEFORE FIX:
+-----------
+┌─────────────────────────────────────┐
+│   Guest Account (Database)          │
+│  ┌───────────────────────────────┐  │
+│  │ Name: John Doe                │  │
+│  │ Email: john.doe@example.com   │  │
+│  │ Phone: 0812345678             │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+                 │
+                 │ ❌ ไม่ได้ใช้
+                 ▼
+┌─────────────────────────────────────┐
+│   Booking Guest Data                │
+│  ┌───────────────────────────────┐  │
+│  │ Name: Fon Testuser ✗          │  │
+│  │ Email: fon.test@example.com ✗ │  │
+│  │ Phone: 0867890006 ✗           │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+
+AFTER FIX:
+----------
+┌─────────────────────────────────────┐
+│   Guest Account (Database)          │
+│  ┌───────────────────────────────┐  │
+│  │ Name: John Doe                │  │
+│  │ Email: john.doe@example.com   │  │
+│  │ Phone: 0812345678             │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+                 │
+                 │ ✅ ใช้ข้อมูลนี้
+                 ▼
+┌─────────────────────────────────────┐
+│   Booking Guest Data                │
+│  ┌───────────────────────────────┐  │
+│  │ Name: John Doe ✓              │  │
+│  │ Email: john.doe@example.com ✓ │  │
+│  │ Phone: 0812345678 ✓           │  │
+│  └───────────────────────────────┘  │
+└─────────────────────────────────────┘
+
+
+DATA FLOW: Signed-in User Creates Booking
+==========================================
+
+1. Guest Signs In
+   ┌──────────────┐
+   │ Guest Login  │
+   │ john.doe@... │
+   └──────┬───────┘
+          │
+          ▼
+   ┌──────────────────────┐
+   │ Session Created      │
+   │ - guest_id: 1        │
+   │ - name: John Doe     │
+   │ - email: john.doe... │
+   │ - phone: 0812345678  │
+   └──────┬───────────────┘
+          │
+          ▼
+
+2. Guest Creates Booking
+   ┌──────────────────────┐
+   │ Frontend             │
+   │ - Sends form data    │
+   │ - May be empty/mock  │
+   └──────┬───────────────┘
+          │
+          ▼
+   ┌──────────────────────┐
+   │ Backend              │
+   │ - Gets guest_id      │
+   │ - Queries account    │
+   │ - Uses account data  │ ✅
+   │ - Ignores form data  │
+   └──────┬───────────────┘
+          │
+          ▼
+   ┌──────────────────────┐
+   │ Database             │
+   │ booking_guests:      │
+   │ - John Doe           │ ✅
+   │ - john.doe@...       │ ✅
+   │ - 0812345678         │ ✅
+   └──────────────────────┘
+
+
+PAYMENT STATUS LOGIC
+====================
+
+┌─────────────────────────────────────┐
+│ Booking Status                      │
+└─────────────────────────────────────┘
+          │
+          ├─ PendingPayment
+          │  └─> payment_status: "none"
+          │
+          ├─ Confirmed ✓
+          │  └─> payment_status: "approved" ✅
+          │
+          ├─ CheckedIn ✓
+          │  └─> payment_status: "approved" ✅
+          │
+          └─ Completed ✓
+             └─> payment_status: "approved" ✅
+
+
+FIX SUMMARY
+===========
+
+┌─────────────────────────────────────┐
+│ 1. Payment Status Logic             │
+│    backend/internal/repository/     │
+│    booking_repository.go            │
+│                                     │
+│    CASE                             │
+│      WHEN status IN ('Confirmed',   │
+│        'CheckedIn', 'Completed')    │
+│      THEN 'approved'                │
+│    END                              │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│ 2. Guest Data Logic                 │
+│    backend/internal/service/        │
+│    booking_service.go               │
+│                                     │
+│    if guest.IsPrimary &&            │
+│       guestAccount != nil {         │
+│      // Use account data            │
+│      firstName = account.FirstName  │
+│      email = account.Email          │
+│      phone = account.Phone          │
+│    }                                │
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│ 3. Fix Existing Bookings            │
+│    database/migrations/             │
+│    fix_mock_guest_data.sql          │
+│                                     │
+│    UPDATE booking_guests            │
+│    SET first_name = g.first_name,   │
+│        email = g.email,             │
+│        phone = g.phone              │
+│    FROM guests g                    │
+│    WHERE is_primary = true          │
+└─────────────────────────────────────┘
+
+
+TESTING FLOW
+============
+
+1. Rebuild Backend
+   ┌──────────────────────┐
+   │ test-guest-data-     │
+   │ fix.bat              │
+   └──────┬───────────────┘
+          │
+          ▼
+   ┌──────────────────────┐
+   │ Backend Rebuilt      │
+   │ ✅ Ready to test     │
+   └──────────────────────┘
+
+2. Create New Booking
+   ┌──────────────────────┐
+   │ Sign in as guest     │
+   └──────┬───────────────┘
+          │
+          ▼
+   ┌──────────────────────┐
+   │ Create booking       │
+   └──────┬───────────────┘
+          │
+          ▼
+   ┌──────────────────────┐
+   │ Complete booking     │
+   └──────────────────────┘
+
+3. Verify Results
+   ┌──────────────────────┐
+   │ admin/reception      │
+   │ ✅ John Doe          │
+   │ ✅ ยืนยันแล้ว       │
+   └──────────────────────┘
+          │
+          ▼
+   ┌──────────────────────┐
+   │ admin/checkin        │
+   │ ✅ John Doe          │
+   │ ✅ approved          │
+   └──────────────────────┘
+
+
+SUCCESS CRITERIA
+================
+
+✅ Payment status ตรงกันทุกหน้า
+✅ Guest data เป็นข้อมูลจริง
+✅ ไม่มี mock data (Fon Testuser)
+✅ Check-in flow ทำงานได้
+✅ ระบบพร้อม production
+
+========================================
+End of Diagram
+========================================

@@ -180,16 +180,14 @@ func (s *BookingService) CreateBooking(ctx context.Context, guestID int, req *mo
 			lastName := guest.LastName
 			
 			if guest.IsPrimary && guestAccount != nil {
-				// For signed-in users: ALWAYS use account data (override form data)
+				// For signed-in users: ALWAYS use account data (override any form data)
 				phone = &guestAccount.Phone
 				email = &guestAccount.Email
-				// Also use account name if form name is empty or generic
-				if firstName == "" || firstName == "Guest" || firstName == "Fon" {
-					firstName = guestAccount.FirstName
-				}
-				if lastName == "" || lastName == "Testuser" {
-					lastName = guestAccount.LastName
-				}
+				firstName = guestAccount.FirstName
+				lastName = guestAccount.LastName
+				
+				fmt.Printf("[CreateBooking] Using guest account data for primary guest: %s %s, email: %s, phone: %s\n", 
+					firstName, lastName, *email, *phone)
 			} else if guest.IsPrimary && guestAccount == nil {
 				// For non-signed-in users: use form data (must be provided)
 				if phone == nil || *phone == "" {
@@ -198,6 +196,9 @@ func (s *BookingService) CreateBooking(ctx context.Context, guestID int, req *mo
 				if email == nil || *email == "" {
 					return nil, errors.New("email is required for primary guest")
 				}
+				
+				fmt.Printf("[CreateBooking] Using form data for non-signed-in primary guest: %s %s, email: %s, phone: %s\n", 
+					firstName, lastName, *email, *phone)
 			}
 			
 			bookingGuest := &models.BookingGuest{

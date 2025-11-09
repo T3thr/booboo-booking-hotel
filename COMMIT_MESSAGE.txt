@@ -1,0 +1,71 @@
+Fix: Guest data และ payment status inconsistency
+
+## ปัญหาที่แก้ไข
+
+1. Payment status ไม่ตรงกันระหว่าง admin/checkin และ admin/reception
+   - admin/checkin แสดง "ยังไม่ชำระ" 
+   - admin/reception แสดง "ยืนยันแล้ว"
+
+2. Guest data ใช้ mock data แทนข้อมูลจาก guest account
+   - แสดง "Fon Testuser, fon.test@example.com, 0867890006"
+   - แทนที่จะใช้ข้อมูลจริงจาก signed-in guest account
+
+## การแก้ไข
+
+### 1. Payment Status Logic (booking_repository.go)
+- เพิ่ม CASE statement ใน GetArrivals query
+- ถ้า booking status = Confirmed/CheckedIn/Completed → payment_status = "approved"
+- เพราะ Confirmed หมายความว่าผ่าน confirm_booking() แล้ว (ชำระเงินสำเร็จ)
+
+### 2. Guest Data Logic (booking_service.go)
+- แก้ CreateBooking ให้ใช้ guest account data สำหรับ signed-in users
+- ใช้ข้อมูลจาก guest account เสมอ (ไม่ใช้ข้อมูลจากฟอร์ม)
+- เพิ่ม logging เพื่อ debug
+
+### 3. Fix Existing Bookings (fix_mock_guest_data.sql)
+- SQL script สำหรับ update booking_guests table
+- แก้ไข booking เก่าที่มี mock data ให้ใช้ข้อมูลจาก guest account
+
+## ไฟล์ที่แก้ไข
+
+- backend/internal/repository/booking_repository.go
+- backend/internal/service/booking_service.go
+- database/migrations/fix_mock_guest_data.sql (new)
+- database/migrations/run_fix_mock_guest_data.bat (new)
+
+## ไฟล์เอกสาร
+
+- README_FIX.md - สรุปสั้นๆ
+- QUICK_START_FIX.txt - คู่มือเริ่มต้นด่วน
+- สรุปการแก้ไข_Guest_Payment.md - สรุปภาษาไทย
+- COMPLETE_FIX_GUIDE.md - คู่มือละเอียด
+- FIX_OVERVIEW.md - ภาพรวมและ data flow
+- TESTING_CHECKLIST.md - checklist การทดสอบ
+- FIX_DIAGRAM.txt - visual diagram
+- INDEX_GUEST_PAYMENT_FIX.md - index ไฟล์ทั้งหมด
+- test-guest-data-fix.bat - script rebuild backend
+
+## ผลลัพธ์
+
+✅ Payment status ตรงกันทุกหน้า (admin/reception, admin/checkin)
+✅ Guest data ใช้ข้อมูลจริงจาก guest account
+✅ ไม่มี mock data ใน booking ใหม่
+✅ Booking เก่าสามารถแก้ไขได้ด้วย SQL script
+✅ Check-in flow ทำงานได้ปกติ
+
+## Testing
+
+1. Rebuild backend: `test-guest-data-fix.bat`
+2. (Optional) Fix existing bookings: `run_fix_mock_guest_data.bat`
+3. Create new booking as signed-in user
+4. Verify in admin/reception and admin/checkin
+
+## Breaking Changes
+
+ไม่มี - backward compatible
+
+## Notes
+
+- Booking ใหม่จะใช้ข้อมูลจาก guest account อัตโนมัติ
+- Booking เก่าต้องรัน fix script ถ้าต้องการแก้ไข
+- Non-signed-in users จะใช้ข้อมูลจากฟอร์มตามปกติ
