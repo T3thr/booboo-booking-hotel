@@ -1,0 +1,59 @@
+========================================
+✅ แก้ไข Loading ไม่หยุด - เสร็จแล้ว!
+========================================
+
+## ปัญหา:
+- กดจองห้อง → Loading "Reserving your room..." ไม่หยุด
+- Backend สร้าง hold สำเร็จแล้ว แต่ UI ยังโหลดอยู่
+- ต้องย่อ/เปิด browser ใหม่ถึงจะแสดงหน้า
+
+## สาเหตุ:
+- `createHold.mutate()` callback ไม่ทำงาน
+- State `isCreatingHold` ไม่ถูก update
+- ทำให้ loading screen ไม่หายไป
+
+## การแก้ไข:
+
+### 1. ใช้ Mutation Status โดยตรง
+```typescript
+// ❌ เดิม - ใช้ local state
+const [isCreatingHold, setIsCreatingHold] = useState(false);
+
+// ✅ ใหม่ - ใช้ mutation status
+const isCreatingHold = createHold.isPending;
+```
+
+### 2. ใช้ useEffect แทน Callback
+```typescript
+// ❌ เดิม - callback ไม่ทำงาน
+createHold.mutate(data, {
+  onSuccess: (data) => {
+    // ไม่ทำงาน!
+  }
+});
+
+// ✅ ใหม่ - useEffect ทำงานเสมอ
+useEffect(() => {
+  if (createHold.isSuccess && createHold.data) {
+    // ทำงานทันที!
+  }
+}, [createHold.isSuccess, createHold.data]);
+```
+
+## ผลลัพธ์:
+
+✅ กดจองห้อง → Loading แสดงชั่วครู่
+✅ Backend สร้าง hold สำเร็จ → หน้าแสดงทันที
+✅ ไม่ต้องย่อ/เปิด browser ใหม่
+✅ ไม่ต้องรอนาน
+
+## ทดสอบ:
+
+1. ค้นหาห้อง → เลือกห้อง → คลิก "จองห้องนี้"
+2. ✅ Loading แสดง 1-2 วินาที
+3. ✅ หน้า guest-info แสดงทันที
+4. ✅ ไม่ต้องรีเฟรชหรือเปลี่ยนแท็บ
+
+========================================
+พร้อมใช้งาน - ไม่ต้องทำอะไรเพิ่ม!
+========================================

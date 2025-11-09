@@ -31,11 +31,13 @@ export default function GuestInfoPage() {
     { first_name: '', last_name: '', phone: '', email: '', type: 'Adult', is_primary: true },
   ]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isCreatingHold, setIsCreatingHold] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const holdCreatedRef = useRef(false); // Prevent duplicate hold creation
+  
+  // Use mutation status directly
+  const isCreatingHold = createHold.isPending;
 
   // Redirect if no search params or room selected
   useEffect(() => {
@@ -61,7 +63,6 @@ export default function GuestInfoPage() {
         if (expiry > new Date()) {
           console.log('[Hold] Using existing hold from localStorage');
           setHoldExpiry(expiry);
-          setIsCreatingHold(false);
           holdCreatedRef.current = true;
           return;
         }
@@ -72,7 +73,6 @@ export default function GuestInfoPage() {
     
     if (searchParams && selectedRoomTypeId && !holdExpiry && !isCreatingHold) {
       holdCreatedRef.current = true; // Mark as creating
-      setIsCreatingHold(true);
       
       console.log('[Hold] Creating new hold...');
       
@@ -82,54 +82,60 @@ export default function GuestInfoPage() {
         check_out_date: searchParams.check_out_date,
       };
 
-      createHold.mutate(holdData, {
-        onSuccess: (data: any) => {
-          console.log('[Hold] Success!', data);
-          
-          // Parse expiry
-          let expiry: Date;
-          if (data.hold_expiry) {
-            expiry = new Date(data.hold_expiry);
-          } else if (data.expiry_time) {
-            expiry = new Date(data.expiry_time);
-          } else if (data.data?.hold_expiry) {
-            expiry = new Date(data.data.hold_expiry);
-          } else {
-            expiry = new Date(Date.now() + 15 * 60 * 1000);
-          }
-          
-          // Save to localStorage
-          const holdInfo = {
-            sessionId: data.session_id || `guest_${Date.now()}`,
-            roomTypeId: selectedRoomTypeId,
-            roomTypeName: selectedRoomType?.name || 'Room',
-            checkIn: searchParams.check_in_date,
-            checkOut: searchParams.check_out_date,
-            adults: searchParams.adults || 2,
-            children: searchParams.children || 0,
-            holdExpiry: expiry.toISOString(),
-          };
-          localStorage.setItem('booking_hold', JSON.stringify(holdInfo));
-          
-          // Update state immediately
-          setIsCreatingHold(false);
-          setHoldExpiry(expiry);
-          console.log('[Hold] Hold created successfully');
-        },
-        onError: (error: any) => {
-          console.error('[Hold] Error:', error);
-          setIsCreatingHold(false);
-          holdCreatedRef.current = false;
-          
-          showToastMessage(error.message || 'ไม่สามารถจองห้องได้');
-          
-          setTimeout(() => {
-            router.push('/rooms/search');
-          }, 2000);
-        },
-      });
+      createHold.mutate(holdData);
     }
-  }, [searchParams, selectedRoomTypeId, holdExpiry, isCreatingHold, createHold, setHoldExpiry, router, selectedRoomType]);
+  }, [searchParams, selectedRoomTypeId, holdExpiry, isCreatingHold, createHold]);
+  
+  // Handle mutation success
+  useEffect(() => {
+    if (createHold.isSuccess && createHold.data && !holdExpiry) {
+      const data = createHold.data;
+      console.log('[Hold] Processing success:', data);
+      
+      // Parse expiry
+      let expiry: Date;
+      if (data.hold_expiry) {
+        expiry = new Date(data.hold_expiry);
+      } else if (data.expiry_time) {
+        expiry = new Date(data.expiry_time);
+      } else if (data.data?.hold_expiry) {
+        expiry = new Date(data.data.hold_expiry);
+      } else {
+        expiry = new Date(Date.now() + 15 * 60 * 1000);
+      }
+      
+      // Save to localStorage
+      const holdInfo = {
+        sessionId: data.session_id || `guest_${Date.now()}`,
+        roomTypeId: selectedRoomTypeId!,
+        roomTypeName: selectedRoomType?.name || 'Room',
+        checkIn: searchParams!.check_in_date,
+        checkOut: searchParams!.check_out_date,
+        adults: searchParams!.adults || 2,
+        children: searchParams!.children || 0,
+        holdExpiry: expiry.toISOString(),
+      };
+      localStorage.setItem('booking_hold', JSON.stringify(holdInfo));
+      
+      // Update state
+      setHoldExpiry(expiry);
+      console.log('[Hold] Hold created successfully');
+    }
+  }, [createHold.isSuccess, createHold.data, holdExpiry, setHoldExpiry, selectedRoomTypeId, selectedRoomType, searchParams]);
+  
+  // Handle mutation error
+  useEffect(() => {
+    if (createHold.isError) {
+      console.error('[Hold] Error:', createHold.error);
+      holdCreatedRef.current = false;
+      
+      showToastMessage((createHold.error as any)?.message || 'ไม่สามารถจองห้องได้');
+      
+      setTimeout(() => {
+        router.push('/rooms/search');
+      }, 2000);
+    }
+  }, [createHold.isError, createHold.error, router]);
 
   const totalGuests = (searchParams?.adults || 1) + (searchParams?.children || 0);
 
